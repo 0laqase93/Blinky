@@ -67,15 +67,15 @@ class LoginActivity : ComponentActivity() {
         setContent {
             BlinkyTheme {
                 LoginScreen(
-                    onLoginAttempt = { email, password, setLoading ->
-                        loginUser(email, password, setLoading)
+                    onLoginAttempt = { email, password, setLoading, setErrorMessage ->
+                        loginUser(email, password, setLoading, setErrorMessage)
                     }
                 )
             }
         }
     }
 
-    private fun loginUser(email: String, password: String, setLoading: (Boolean) -> Unit) {
+    private fun loginUser(email: String, password: String, setLoading: (Boolean) -> Unit, setErrorMessage: (String) -> Unit) {
         val loginRequest = LoginRequest(email, password)
 
         RetrofitClient.authApi.login(loginRequest).enqueue(object : Callback<dam.tfg.blinky.dataclass.LoginResponse> {
@@ -133,7 +133,7 @@ class LoginActivity : ComponentActivity() {
                             }
 
                             Log.e("Blinky", "Error response: $errorMessage")
-                            Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_LONG).show()
+                            setErrorMessage(errorMessage)
                         } else {
                             // Fallback to default error handling
                             val errorMessage = when (response.code()) {
@@ -141,7 +141,7 @@ class LoginActivity : ComponentActivity() {
                                 else -> "Error en el servidor: ${response.code()}"
                             }
                             Log.e("Blinky", errorMessage)
-                            Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                            setErrorMessage(errorMessage)
                         }
                     } catch (e: Exception) {
                         // If parsing fails, use default error handling
@@ -150,7 +150,7 @@ class LoginActivity : ComponentActivity() {
                             401 -> "Credenciales inválidas"
                             else -> "Error en el servidor: ${response.code()}"
                         }
-                        Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                        setErrorMessage(errorMessage)
                     }
                 }
             }
@@ -161,11 +161,7 @@ class LoginActivity : ComponentActivity() {
 
                 val errorMsg = "Error de conexión: ${t.message}"
                 Log.e("Blinky", errorMsg, t)
-                Toast.makeText(
-                    this@LoginActivity,
-                    errorMsg,
-                    Toast.LENGTH_SHORT
-                ).show()
+                setErrorMessage(errorMsg)
             }
         })
     }
@@ -180,42 +176,68 @@ class LoginActivity : ComponentActivity() {
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    onLoginAttempt: (String, String, (Boolean) -> Unit) -> Unit
+    onLoginAttempt: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
+    // Error state variables
+    var emailError by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
+    var generalError by remember { mutableStateOf("") }
+
     // Create a focus requester for the password field
     val passwordFocusRequester = remember { FocusRequester() }
 
-    // Mueve el contexto aquí, dentro del cuerpo composable
-    val context = androidx.compose.ui.platform.LocalContext.current
+    // Function to clear errors when user starts typing
+    val clearErrors = {
+        emailError = ""
+        passwordError = ""
+        generalError = ""
+    }
+
+    // Function to set error message based on the content
+    val setErrorMessage = { message: String ->
+        when {
+            message.contains("email", ignoreCase = true) || message.contains("correo", ignoreCase = true) -> {
+                emailError = message
+            }
+            message.contains("contraseña", ignoreCase = true) || message.contains("password", ignoreCase = true) -> {
+                passwordError = message
+            }
+            else -> {
+                generalError = message
+            }
+        }
+    }
 
     // Function to attempt login
     val attemptLogin = {
+        // Clear previous errors
+        clearErrors()
+
         if (email.isNotEmpty() && password.isNotEmpty()) {
             isLoading = true
-            onLoginAttempt(email, password) { newLoadingState ->
+            onLoginAttempt(email, password, { newLoadingState ->
                 isLoading = newLoadingState
-            }
+            }, { errorMessage ->
+                setErrorMessage(errorMessage)
+            })
         } else {
-            // Mostrar mensaje de error basado en los campos vacíos
+            // Set error messages based on empty fields
             when {
                 email.isEmpty() && password.isEmpty() -> {
-                    val errorMsg = "Por favor, introduce el correo y la contraseña"
-                    Log.e("Blinky", errorMsg)
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                    generalError = "Por favor, introduce el correo y la contraseña"
+                    Log.e("Blinky", generalError)
                 }
                 email.isEmpty() -> {
-                    val errorMsg = "Por favor, introduce el correo electrónico"
-                    Log.e("Blinky", errorMsg)
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                    emailError = "Por favor, introduce el correo electrónico"
+                    Log.e("Blinky", emailError)
                 }
                 password.isEmpty() -> {
-                    val errorMsg = "Por favor, introduce la contraseña"
-                    Log.e("Blinky", errorMsg)
-                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                    passwordError = "Por favor, introduce la contraseña"
+                    Log.e("Blinky", passwordError)
                 }
             }
         }
@@ -256,10 +278,21 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // General error message
+        if (generalError.isNotEmpty()) {
+            ErrorMessage(generalError)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // Email Field
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = { 
+                email = it
+                // Clear email error when user starts typing
+                emailError = ""
+                generalError = ""
+            },
             label = { Text("Correo electrónico") },
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") },
             keyboardOptions = KeyboardOptions(
@@ -272,15 +305,26 @@ fun LoginScreen(
                     passwordFocusRequester.requestFocus()
                 }
             ),
+            isError = emailError.isNotEmpty(),
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Email error message
+        if (emailError.isNotEmpty()) {
+            ErrorMessage(emailError)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Password Field
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = { 
+                password = it
+                // Clear password error when user starts typing
+                passwordError = ""
+                generalError = ""
+            },
             label = { Text("Contraseña") },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Password") },
             visualTransformation = PasswordVisualTransformation(),
@@ -294,10 +338,16 @@ fun LoginScreen(
                     attemptLogin()
                 }
             ),
+            isError = passwordError.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(passwordFocusRequester)
         )
+
+        // Password error message
+        if (passwordError.isNotEmpty()) {
+            ErrorMessage(passwordError)
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -320,5 +370,21 @@ fun LoginScreen(
                 Text("Iniciar Sesión")
             }
         }
+    }
+}
+
+@Composable
+fun ErrorMessage(message: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 4.dp),
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Text(
+            text = message,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
