@@ -23,9 +23,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.dataclass.ChatDTO
 import dam.tfg.blinky.dataclass.ChatResponse
+import dam.tfg.blinky.navigation.BottomNavBar
+import dam.tfg.blinky.navigation.Screen
+import dam.tfg.blinky.screens.CalendarScreen
+import dam.tfg.blinky.screens.ProfileScreen
+import dam.tfg.blinky.screens.SettingsScreen
 import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.utils.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,10 +82,35 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         // Configurar el contenido usando Jetpack Compose
         setContent {
             BlinkyTheme {
-                ChatScreen(
-                    tts = tts,
-                    onMicClick = { startSpeechRecognition() }
-                )
+                val navController = rememberNavController()
+
+                Scaffold(
+                    bottomBar = {
+                        BottomNavBar(navController = navController)
+                    }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Home.route,
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable(Screen.Home.route) {
+                            ChatScreen(
+                                tts = tts,
+                                onMicClick = { startSpeechRecognition() }
+                            )
+                        }
+                        composable(Screen.Calendar.route) {
+                            CalendarScreen()
+                        }
+                        composable(Screen.Settings.route) {
+                            SettingsScreen()
+                        }
+                        composable(Screen.Profile.route) {
+                            ProfileScreen()
+                        }
+                    }
+                }
             }
         }
     }
