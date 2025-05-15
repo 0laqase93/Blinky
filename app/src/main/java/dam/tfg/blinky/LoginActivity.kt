@@ -37,8 +37,11 @@ import androidx.compose.foundation.verticalScroll
 import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.dataclass.ErrorResponse
 import dam.tfg.blinky.dataclass.LoginRequest
+import dam.tfg.blinky.dataclass.UserResponse
 import dam.tfg.blinky.ui.theme.BlinkyTheme
+import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
+import dam.tfg.blinky.utils.UserManager
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import retrofit2.Call
@@ -47,6 +50,7 @@ import retrofit2.Response
 
 class LoginActivity : ComponentActivity() {
     private lateinit var tokenManager: TokenManager
+    private lateinit var userManager: UserManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +58,9 @@ class LoginActivity : ComponentActivity() {
 
         // Initialize TokenManager
         tokenManager = TokenManager(this)
+
+        // Initialize UserManager
+        userManager = UserManager.getInstance(this)
 
         // Initialize RetrofitClient
         RetrofitClient.initialize(this)
@@ -91,8 +98,13 @@ class LoginActivity : ComponentActivity() {
                         // Save token to SharedPreferences
                         tokenManager.saveToken(loginResponse.token)
 
-                        // Navigate to MainActivity
-                        navigateToMainActivity()
+                        // Save user data from login response
+                        loginResponse.user.let { user ->
+                            userManager.saveUserData(user.email, user.password ?: "", user.username)
+
+                            // Navigate to MainActivity
+                            navigateToMainActivity()
+                        }
                     }
                 } else {
                     // Handle error
@@ -165,6 +177,7 @@ class LoginActivity : ComponentActivity() {
             }
         })
     }
+
 
     private fun navigateToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)

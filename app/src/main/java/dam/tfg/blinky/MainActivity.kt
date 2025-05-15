@@ -32,9 +32,10 @@ import dam.tfg.blinky.dataclass.ChatResponse
 import dam.tfg.blinky.navigation.BottomNavBar
 import dam.tfg.blinky.navigation.Screen
 import dam.tfg.blinky.screens.CalendarScreen
-import dam.tfg.blinky.screens.ProfileScreen
+import dam.tfg.blinky.presentation.screens.EnhancedProfileScreen
 import dam.tfg.blinky.screens.SettingsScreen
 import dam.tfg.blinky.ui.theme.BlinkyTheme
+import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +62,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
         // Ensure RetrofitClient is initialized
         RetrofitClient.initialize(applicationContext)
+
+        // Initialize ThemeManager
+        ThemeManager.getInstance(applicationContext)
 
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)
@@ -107,7 +111,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                             SettingsScreen()
                         }
                         composable(Screen.Profile.route) {
-                            ProfileScreen()
+                            EnhancedProfileScreen()
                         }
                     }
                 }
