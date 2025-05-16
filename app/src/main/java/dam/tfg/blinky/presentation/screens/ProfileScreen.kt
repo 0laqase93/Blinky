@@ -38,28 +38,34 @@ fun EnhancedProfileScreen() {
     val error by viewModel.error
     val successMessage by viewModel.successMessage
     val scope = rememberCoroutineScope()
-    
+
     // State for edit name dialog
     var showEditNameDialog by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
-    
+
     // State for confirmation dialogs
     var showLogoutConfirmation by remember { mutableStateOf(false) }
+    var showVerifyPasswordDialog by remember { mutableStateOf(false) }
+    var showNewPasswordDialog by remember { mutableStateOf(false) }
     var showResetPasswordConfirmation by remember { mutableStateOf(false) }
-    
+
+    // State for password reset
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+
     // Effect to show toast messages for errors and success
     LaunchedEffect(error, successMessage) {
         error?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.clearMessages()
         }
-        
+
         successMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
             viewModel.clearMessages()
         }
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -73,7 +79,7 @@ fun EnhancedProfileScreen() {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 24.dp)
         )
-        
+
         // Profile Picture
         Box(
             modifier = Modifier
@@ -101,7 +107,7 @@ fun EnhancedProfileScreen() {
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            
+
             // Edit icon overlay
             Box(
                 modifier = Modifier
@@ -120,9 +126,9 @@ fun EnhancedProfileScreen() {
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // User Information Card
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -167,9 +173,9 @@ fun EnhancedProfileScreen() {
                         )
                     }
                 }
-                
+
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
-                
+
                 // Email
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -196,12 +202,15 @@ fun EnhancedProfileScreen() {
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         // Action Buttons
         Button(
-            onClick = { showResetPasswordConfirmation = true },
+            onClick = { 
+                currentPassword = ""
+                showVerifyPasswordDialog = true 
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary
@@ -214,9 +223,9 @@ fun EnhancedProfileScreen() {
             Spacer(modifier = Modifier.width(8.dp))
             Text("Restablecer Contraseña")
         }
-        
+
         Spacer(modifier = Modifier.height(12.dp))
-        
+
         Button(
             onClick = { showLogoutConfirmation = true },
             modifier = Modifier.fillMaxWidth(),
@@ -231,7 +240,7 @@ fun EnhancedProfileScreen() {
             Spacer(modifier = Modifier.width(8.dp))
             Text("Cerrar Sesión")
         }
-        
+
         // Loading indicator
         if (isLoading) {
             Box(
@@ -242,7 +251,7 @@ fun EnhancedProfileScreen() {
             }
         }
     }
-    
+
     // Edit Name Dialog
     if (showEditNameDialog) {
         AlertDialog(
@@ -278,7 +287,7 @@ fun EnhancedProfileScreen() {
             }
         )
     }
-    
+
     // Logout Confirmation Dialog
     if (showLogoutConfirmation) {
         AlertDialog(
@@ -313,8 +322,8 @@ fun EnhancedProfileScreen() {
             }
         )
     }
-    
-    // Reset Password Confirmation Dialog
+
+    // Reset Password Confirmation Dialog (Email method)
     if (showResetPasswordConfirmation) {
         AlertDialog(
             onDismissRequest = { showResetPasswordConfirmation = false },
@@ -324,7 +333,7 @@ fun EnhancedProfileScreen() {
                 Button(
                     onClick = {
                         showResetPasswordConfirmation = false
-                        viewModel.resetPassword()
+                        viewModel.requestPasswordResetEmail()
                     }
                 ) {
                     Text("Enviar")
@@ -333,6 +342,94 @@ fun EnhancedProfileScreen() {
             dismissButton = {
                 TextButton(
                     onClick = { showResetPasswordConfirmation = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Verify Password Dialog
+    if (showVerifyPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showVerifyPasswordDialog = false },
+            title = { Text("Verificar Contraseña") },
+            text = {
+                Column {
+                    Text("Introduce tu contraseña actual para verificar tu identidad")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = { currentPassword = it },
+                        label = { Text("Contraseña actual") },
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (currentPassword.isNotBlank()) {
+                            viewModel.verifyPassword(currentPassword) {
+                                // On success
+                                showVerifyPasswordDialog = false
+                                newPassword = ""
+                                showNewPasswordDialog = true
+                            }
+                        }
+                    },
+                    enabled = currentPassword.isNotBlank()
+                ) {
+                    Text("Verificar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showVerifyPasswordDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // New Password Dialog
+    if (showNewPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewPasswordDialog = false },
+            title = { Text("Nueva Contraseña") },
+            text = {
+                Column {
+                    Text("Introduce tu nueva contraseña")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Nueva contraseña") },
+                        singleLine = true,
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newPassword.isNotBlank()) {
+                            viewModel.resetPassword(newPassword)
+                            showNewPasswordDialog = false
+                        }
+                    },
+                    enabled = newPassword.isNotBlank()
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showNewPasswordDialog = false }
                 ) {
                     Text("Cancelar")
                 }

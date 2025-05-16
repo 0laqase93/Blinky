@@ -3,7 +3,6 @@ package dam.tfg.blinky
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,14 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,12 +31,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.dataclass.ErrorResponse
-import dam.tfg.blinky.dataclass.LoginRequest
 import dam.tfg.blinky.dataclass.LoginResponse
 import dam.tfg.blinky.dataclass.RegisterDTO
-import dam.tfg.blinky.dataclass.UserResponse
 import dam.tfg.blinky.ui.theme.BlinkyTheme
-import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
 import dam.tfg.blinky.utils.UserManager
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -52,7 +42,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class LoginActivity : ComponentActivity() {
+class RegisterActivity : ComponentActivity() {
     private lateinit var tokenManager: TokenManager
     private lateinit var userManager: UserManager
 
@@ -69,35 +59,34 @@ class LoginActivity : ComponentActivity() {
         // Initialize RetrofitClient
         RetrofitClient.initialize(this)
 
-        // Check if user is already logged in
-        if (tokenManager.hasToken()) {
-            navigateToMainActivity()
-            return
-        }
-
         setContent {
             BlinkyTheme {
-                LoginScreen(
-                    onLoginAttempt = { email, password, setLoading, setErrorMessage ->
-                        loginUser(email, password, setLoading, setErrorMessage)
+                RegisterScreen(
+                    onRegisterAttempt = { email, username, password, setLoading, setErrorMessage ->
+                        registerUser(email, username, password, setLoading, setErrorMessage)
                     },
-                    onNavigateToRegister = {
-                        // Navigate to RegisterActivity
-                        val intent = Intent(this, RegisterActivity::class.java)
-                        startActivity(intent)
+                    onBackToLogin = {
+                        // Navigate back to login screen
+                        finish()
                     }
                 )
             }
         }
     }
 
-    private fun loginUser(email: String, password: String, setLoading: (Boolean) -> Unit, setErrorMessage: (String) -> Unit) {
-        val loginRequest = LoginRequest(email, password)
+    private fun registerUser(
+        email: String,
+        username: String,
+        password: String,
+        setLoading: (Boolean) -> Unit,
+        setErrorMessage: (String) -> Unit
+    ) {
+        val registerRequest = RegisterDTO(email, password, username)
 
-        RetrofitClient.authApi.login(loginRequest).enqueue(object : Callback<dam.tfg.blinky.dataclass.LoginResponse> {
+        RetrofitClient.authApi.register(registerRequest).enqueue(object : Callback<LoginResponse> {
             override fun onResponse(
-                call: Call<dam.tfg.blinky.dataclass.LoginResponse>,
-                response: Response<dam.tfg.blinky.dataclass.LoginResponse>
+                call: Call<LoginResponse>,
+                response: Response<LoginResponse>
             ) {
                 // Set loading to false regardless of response
                 setLoading(false)
@@ -126,7 +115,7 @@ class LoginActivity : ComponentActivity() {
 
                             // Get the main error message or use a default one
                             var errorMessage = errorResponse.message ?: when (response.code()) {
-                                401 -> "Credenciales inválidas"
+                                409 -> "El usuario ya existe"
                                 else -> "Error en el servidor: ${response.code()}"
                             }
 
@@ -135,6 +124,7 @@ class LoginActivity : ComponentActivity() {
                                 // Check for specific error messages about email or user existence
                                 val emailError = errorResponse.errors.find { it.contains("email", ignoreCase = true) || it.contains("correo", ignoreCase = true) }
                                 val userError = errorResponse.errors.find { it.contains("usuario", ignoreCase = true) || it.contains("user", ignoreCase = true) }
+                                val passwordError = errorResponse.errors.find { it.contains("contraseña", ignoreCase = true) || it.contains("password", ignoreCase = true) }
 
                                 when {
                                     emailError != null -> {
@@ -144,6 +134,10 @@ class LoginActivity : ComponentActivity() {
                                     userError != null -> {
                                         // User-specific error
                                         errorMessage = userError
+                                    }
+                                    passwordError != null -> {
+                                        // Password-specific error
+                                        errorMessage = passwordError
                                     }
                                     else -> {
                                         // Other errors
@@ -158,7 +152,7 @@ class LoginActivity : ComponentActivity() {
                         } else {
                             // Fallback to default error handling
                             val errorMessage = when (response.code()) {
-                                401 -> "Credenciales inválidas"
+                                409 -> "El usuario ya existe"
                                 else -> "Error en el servidor: ${response.code()}"
                             }
                             Log.e("Blinky", errorMessage)
@@ -168,7 +162,7 @@ class LoginActivity : ComponentActivity() {
                         // If parsing fails, use default error handling
                         Log.e("Blinky", "Error parsing error response", e)
                         val errorMessage = when (response.code()) {
-                            401 -> "Credenciales inválidas"
+                            409 -> "El usuario ya existe"
                             else -> "Error en el servidor: ${response.code()}"
                         }
                         setErrorMessage(errorMessage)
@@ -176,7 +170,7 @@ class LoginActivity : ComponentActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<dam.tfg.blinky.dataclass.LoginResponse>, t: Throwable) {
+            override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                 // Set loading to false on failure
                 setLoading(false)
 
@@ -187,35 +181,38 @@ class LoginActivity : ComponentActivity() {
         })
     }
 
-
     private fun navigateToMainActivity() {
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
-        finish() // Close LoginActivity
+        finish() // Close RegisterActivity
     }
 }
 
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     modifier: Modifier = Modifier,
-    onLoginAttempt: (String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onRegisterAttempt: (String, String, String, (Boolean) -> Unit, (String) -> Unit) -> Unit,
+    onBackToLogin: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
     // Error state variables
     var emailError by remember { mutableStateOf("") }
+    var usernameError by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf("") }
     var generalError by remember { mutableStateOf("") }
 
-    // Create a focus requester for the password field
+    // Create focus requesters for the fields
+    val usernameFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
 
     // Function to clear errors when user starts typing
     val clearErrors = {
         emailError = ""
+        usernameError = ""
         passwordError = ""
         generalError = ""
     }
@@ -226,6 +223,9 @@ fun LoginScreen(
             message.contains("email", ignoreCase = true) || message.contains("correo", ignoreCase = true) -> {
                 emailError = message
             }
+            message.contains("usuario", ignoreCase = true) || message.contains("username", ignoreCase = true) -> {
+                usernameError = message
+            }
             message.contains("contraseña", ignoreCase = true) || message.contains("password", ignoreCase = true) -> {
                 passwordError = message
             }
@@ -235,14 +235,14 @@ fun LoginScreen(
         }
     }
 
-    // Function to attempt login
-    val attemptLogin = {
+    // Function to attempt registration
+    val attemptRegister = {
         // Clear previous errors
         clearErrors()
 
-        if (email.isNotEmpty() && password.isNotEmpty()) {
+        if (email.isNotEmpty() && username.isNotEmpty() && password.isNotEmpty()) {
             isLoading = true
-            onLoginAttempt(email, password, { newLoadingState ->
+            onRegisterAttempt(email, username, password, { newLoadingState ->
                 isLoading = newLoadingState
             }, { errorMessage ->
                 setErrorMessage(errorMessage)
@@ -250,13 +250,17 @@ fun LoginScreen(
         } else {
             // Set error messages based on empty fields
             when {
-                email.isEmpty() && password.isEmpty() -> {
-                    generalError = "Por favor, introduce el correo y la contraseña"
+                email.isEmpty() && username.isEmpty() && password.isEmpty() -> {
+                    generalError = "Por favor, completa todos los campos"
                     Log.e("Blinky", generalError)
                 }
                 email.isEmpty() -> {
                     emailError = "Por favor, introduce el correo electrónico"
                     Log.e("Blinky", emailError)
+                }
+                username.isEmpty() -> {
+                    usernameError = "Por favor, introduce el nombre de usuario"
+                    Log.e("Blinky", usernameError)
                 }
                 password.isEmpty() -> {
                     passwordError = "Por favor, introduce la contraseña"
@@ -277,11 +281,12 @@ fun LoginScreen(
             .statusBarsPadding() // This ensures content doesn't overlap with status bar
             .verticalScroll(scrollState) // Allow scrolling when keyboard reduces available space
             .padding(16.dp),
-        verticalArrangement = Arrangement.Top, // Changed from Center to Top
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Add top padding to push content down when keyboard is not visible
         Spacer(modifier = Modifier.height(48.dp))
+
         // App Logo and Title
         Icon(
             imageVector = Icons.Default.AccountCircle,
@@ -294,7 +299,7 @@ fun LoginScreen(
 
         // App Title
         Text(
-            text = "Blinky",
+            text = "Registro en Blinky",
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary
         )
@@ -303,7 +308,7 @@ fun LoginScreen(
 
         // General error message
         if (generalError.isNotEmpty()) {
-            ErrorMessage(generalError)
+            RegisterErrorMessage(generalError)
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -320,12 +325,12 @@ fun LoginScreen(
             leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Done
+                imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(
-                onDone = {
-                    // Move focus to password field when Enter is pressed
-                    passwordFocusRequester.requestFocus()
+                onNext = {
+                    // Move focus to username field when Next is pressed
+                    usernameFocusRequester.requestFocus()
                 }
             ),
             isError = emailError.isNotEmpty(),
@@ -334,7 +339,41 @@ fun LoginScreen(
 
         // Email error message
         if (emailError.isNotEmpty()) {
-            ErrorMessage(emailError)
+            RegisterErrorMessage(emailError)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Username Field
+        OutlinedTextField(
+            value = username,
+            onValueChange = { 
+                username = it
+                // Clear username error when user starts typing
+                usernameError = ""
+                generalError = ""
+            },
+            label = { Text("Nombre de usuario") },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Username") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = {
+                    // Move focus to password field when Next is pressed
+                    passwordFocusRequester.requestFocus()
+                }
+            ),
+            isError = usernameError.isNotEmpty(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(usernameFocusRequester)
+        )
+
+        // Username error message
+        if (usernameError.isNotEmpty()) {
+            RegisterErrorMessage(usernameError)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -357,8 +396,8 @@ fun LoginScreen(
             ),
             keyboardActions = KeyboardActions(
                 onDone = {
-                    // Trigger login when Enter is pressed
-                    attemptLogin()
+                    // Trigger registration when Done is pressed
+                    attemptRegister()
                 }
             ),
             isError = passwordError.isNotEmpty(),
@@ -369,15 +408,15 @@ fun LoginScreen(
 
         // Password error message
         if (passwordError.isNotEmpty()) {
-            ErrorMessage(passwordError)
+            RegisterErrorMessage(passwordError)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Login Button
+        // Register Button
         Button(
             onClick = {
-                attemptLogin()
+                attemptRegister()
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -390,24 +429,24 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Iniciar Sesión")
+                Text("Registrarse")
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Register Button
+        // Back to Login Button
         TextButton(
-            onClick = onNavigateToRegister,
+            onClick = onBackToLogin,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Registrarse")
+            Text("Volver a Iniciar Sesión")
         }
     }
 }
 
 @Composable
-fun ErrorMessage(message: String) {
+fun RegisterErrorMessage(message: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

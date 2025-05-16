@@ -1,6 +1,7 @@
 package dam.tfg.blinky.api
 
 import android.content.Context
+import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.utils.TokenManager
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -8,11 +9,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val IA_BASE_URL = "http://192.168.1.16:8080"
     private var tokenManager: TokenManager? = null
 
     fun initialize(context: Context) {
         tokenManager = TokenManager(context)
+        AppConfig.initialize(context)
     }
 
     private val authInterceptor = Interceptor { chain ->
@@ -36,7 +37,7 @@ object RetrofitClient {
 
     val api: ChatApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(IA_BASE_URL)
+            .baseUrl(AppConfig.getServerUrl())
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -45,11 +46,10 @@ object RetrofitClient {
 
     val authApi: AuthApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(IA_BASE_URL)
+            .baseUrl(AppConfig.getServerUrl())
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(AuthApiService::class.java)
     }
-
-    //val apiTTL: ChatApiService by lazy {
 }

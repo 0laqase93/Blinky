@@ -93,20 +93,58 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
         }
     }
 
-    fun resetPassword() {
+    fun verifyPassword(password: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                val success = userRepository.verifyPassword(password)
+                if (success) {
+                    onSuccess()
+                } else {
+                    _error.value = "Contraseña incorrecta"
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al verificar la contraseña: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun resetPassword(newPassword: String) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                _error.value = null
+                val success = userRepository.resetPassword(newPassword)
+                if (success) {
+                    _successMessage.value = "Contraseña actualizada correctamente"
+                } else {
+                    _error.value = "Error al actualizar la contraseña"
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al restablecer la contraseña: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun requestPasswordResetEmail() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
                 val email = _userState.value?.email ?: return@launch
-                val success = userRepository.resetPassword(email)
+                val success = userRepository.requestPasswordResetEmail(email)
                 if (success) {
-                    _successMessage.value = "Password reset email sent to $email"
+                    _successMessage.value = "Correo de restablecimiento de contraseña enviado a $email"
                 } else {
-                    _error.value = "Failed to send password reset email"
+                    _error.value = "Error al enviar el correo de restablecimiento de contraseña"
                 }
             } catch (e: Exception) {
-                _error.value = "Error resetting password: ${e.message}"
+                _error.value = "Error al solicitar el restablecimiento de contraseña: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
