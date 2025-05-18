@@ -23,6 +23,7 @@
             android:name=".LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Blinky">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,12 +35,14 @@
             android:name=".MainActivity"
             android:exported="false"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Blinky">
         </activity>
         <activity
             android:name=".RegisterActivity"
             android:exported="false"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Blinky">
         </activity>
     </application>
