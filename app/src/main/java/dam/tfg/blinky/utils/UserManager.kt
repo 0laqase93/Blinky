@@ -14,6 +14,9 @@ class UserManager(context: Context) {
         private const val KEY_EMAIL = "user_email"
         private const val KEY_NAME = "user_name"
         private const val KEY_PASSWORD = "user_password"
+        private const val KEY_TOKEN = "user_token"
+        private const val KEY_USER_ID = "user_id"
+        private const val KEY_ADMIN = "user_admin"
 
         // Singleton instance
         @Volatile
@@ -37,6 +40,15 @@ class UserManager(context: Context) {
 
     private val _userPassword = mutableStateOf(prefs.getString(KEY_PASSWORD, "") ?: "")
     val userPassword: State<String> = _userPassword
+
+    private val _token = mutableStateOf(prefs.getString(KEY_TOKEN, "") ?: "")
+    val token: State<String> = _token
+
+    private val _userId = mutableStateOf(prefs.getLong(KEY_USER_ID, -1))
+    val userId: State<Long> = _userId
+
+    private val _isAdmin = mutableStateOf(prefs.getBoolean(KEY_ADMIN, false))
+    val isAdmin: State<Boolean> = _isAdmin
 
     /**
      * Save user email
@@ -63,17 +75,54 @@ class UserManager(context: Context) {
     }
 
     /**
+     * Save user token
+     */
+    fun saveToken(token: String) {
+        prefs.edit().putString(KEY_TOKEN, token).apply()
+        _token.value = token
+    }
+
+    /**
+     * Save user ID
+     */
+    fun saveUserId(userId: Long) {
+        prefs.edit().putLong(KEY_USER_ID, userId).apply()
+        _userId.value = userId
+    }
+
+    /**
+     * Save admin status
+     */
+    fun saveAdminStatus(isAdmin: Boolean) {
+        prefs.edit().putBoolean(KEY_ADMIN, isAdmin).apply()
+        _isAdmin.value = isAdmin
+    }
+
+    /**
      * Save user data from API response
      */
-    fun saveUserData(email: String, password: String, username: String) {
+    fun saveUserData(email: String, password: String, username: String, token: String = "", userId: Long = -1, isAdmin: Boolean = false) {
         prefs.edit()
             .putString(KEY_EMAIL, email)
             .putString(KEY_PASSWORD, password)
             .putString(KEY_NAME, username)
+            .putString(KEY_TOKEN, token)
+            .putLong(KEY_USER_ID, userId)
+            .putBoolean(KEY_ADMIN, isAdmin)
             .apply()
         _userEmail.value = email
         _userPassword.value = password
         _userName.value = username
+        _token.value = token
+        _userId.value = userId
+        _isAdmin.value = isAdmin
+    }
+
+    /**
+     * Save complete user data from login response
+     */
+    fun saveCompleteUserData(token: String, userId: Long, email: String, username: String, isAdmin: Boolean, password: String = "") {
+        saveUserData(email, password, username, token, userId, isAdmin)
     }
 
     /**
@@ -93,9 +142,15 @@ class UserManager(context: Context) {
             .remove(KEY_EMAIL)
             .remove(KEY_NAME)
             .remove(KEY_PASSWORD)
+            .remove(KEY_TOKEN)
+            .remove(KEY_USER_ID)
+            .remove(KEY_ADMIN)
             .apply()
         _userEmail.value = ""
         _userName.value = ""
         _userPassword.value = ""
+        _token.value = ""
+        _userId.value = -1
+        _isAdmin.value = false
     }
 }

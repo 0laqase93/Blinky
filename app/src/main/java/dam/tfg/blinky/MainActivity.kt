@@ -37,6 +37,7 @@ import dam.tfg.blinky.screens.SettingsScreen
 import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
+import dam.tfg.blinky.utils.UserManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -49,6 +50,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     // Instancias para TextToSpeech y el reconocimiento de voz
     private lateinit var tts: TextToSpeech
     private lateinit var speechRecognizer: ActivityResultLauncher<Intent>
+
+    // UserManager para acceder a los datos del usuario
+    private lateinit var userManager: UserManager
 
     // StateFlow para manejar el estado del texto reconocido
     private val promptStateFlow = MutableStateFlow("")
@@ -65,6 +69,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
         // Initialize ThemeManager
         ThemeManager.getInstance(applicationContext)
+
+        // Initialize UserManager
+        userManager = UserManager.getInstance(applicationContext)
 
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)
@@ -134,7 +141,15 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     // Función para enviar el texto reconocido a la API
     private fun sendPromptToApi(prompt: String) {
-        val chatDTO = ChatDTO(1, prompt) // Usando un ID de conversación fijo para simplificar
+        // Obtener el userId del UserManager
+        val userId = userManager.userId.value
+        // Si el userId no está disponible (valor -1), usar un valor alternativo
+        val finalUserId = if (userId != -1L) userId else {
+            // Fallback: usar el hashCode del email como userId (convertido a Long positivo)
+            val email = userManager.userEmail.value
+            Math.abs(email.hashCode().toLong())
+        }
+        val chatDTO = ChatDTO(prompt, finalUserId)
 
         RetrofitClient.api.sendPrompt(chatDTO).enqueue(object : Callback<ChatResponse> {
             override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {

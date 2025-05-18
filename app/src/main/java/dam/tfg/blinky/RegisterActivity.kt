@@ -98,7 +98,15 @@ class RegisterActivity : ComponentActivity() {
 
                         // Save user data from login response
                         loginResponse.user.let { user ->
-                            userManager.saveUserData(user.email, user.password ?: "", user.username)
+                            // Save complete user data including token, id, email, admin status, and username
+                            userManager.saveCompleteUserData(
+                                token = loginResponse.token,
+                                userId = user.id,
+                                email = user.email,
+                                username = user.username,
+                                isAdmin = user.admin,
+                                password = user.password ?: ""
+                            )
 
                             // Navigate to MainActivity
                             navigateToMainActivity()
