@@ -10,7 +10,7 @@ import android.content.SharedPreferences
 object AppConfig {
     private const val PREFS_NAME = "app_config"
     private const val KEY_SERVER_IP = "server_ip"
-    private const val DEFAULT_SERVER_IP = "192.168.1.20"
+    private const val DEFAULT_SERVER_IP = "89.39.156.185"
     private const val DEFAULT_SERVER_PORT = "8080"
 
     private lateinit var prefs: SharedPreferences

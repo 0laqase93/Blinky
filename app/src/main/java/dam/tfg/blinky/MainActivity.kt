@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.rounded.Phone
@@ -23,12 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.dataclass.ChatDTO
 import dam.tfg.blinky.dataclass.ChatResponse
+import dam.tfg.blinky.dataclass.WrenchEmotion
 import dam.tfg.blinky.navigation.BottomNavBar
 import dam.tfg.blinky.navigation.Screen
 import dam.tfg.blinky.screens.CalendarScreen
@@ -59,6 +62,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     // StateFlow para manejar el estado de la respuesta de la API
     private val responseStateFlow = MutableStateFlow("")
+
+    // StateFlow para manejar la emoción actual
+    private val emotionStateFlow = MutableStateFlow(WrenchEmotion.DEFAULT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -139,8 +145,33 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     // Función para exponer el StateFlow de la respuesta al Composable
     fun getResponseStateFlow(): StateFlow<String> = responseStateFlow
 
+    // Función para exponer el StateFlow de la emoción al Composable
+    fun getEmotionStateFlow(): StateFlow<WrenchEmotion> = emotionStateFlow
+
+    // Método para actualizar la emoción actual
+    fun setEmotion(emotion: WrenchEmotion) {
+        emotionStateFlow.value = emotion
+    }
+
+    // Función para detectar etiquetas de emoción en el texto de respuesta
+    private fun detectEmotionTag(text: String): WrenchEmotion {
+        // Buscar etiquetas de emoción en el formato [EMOTION]
+        return when {
+            text.contains("[ANGRY]", ignoreCase = true) -> WrenchEmotion.ANGRY
+            text.contains("[SAD]", ignoreCase = true) -> WrenchEmotion.SAD
+            text.contains("[HAPPY]", ignoreCase = true) -> WrenchEmotion.HAPPY
+            text.contains("[ERROR]", ignoreCase = true) -> WrenchEmotion.ERROR
+            text.contains("[CONFUSED]", ignoreCase = true) -> WrenchEmotion.CONFUSED
+            text.contains("[NEUTRAL]", ignoreCase = true) -> WrenchEmotion.NEUTRAL
+            else -> WrenchEmotion.HAPPY // Por defecto, si no hay etiqueta, usar HAPPY
+        }
+    }
+
     // Función para enviar el texto reconocido a la API
     private fun sendPromptToApi(prompt: String) {
+        // Establecer emoción a NEUTRAL mientras se procesa la solicitud
+        emotionStateFlow.value = WrenchEmotion.NEUTRAL
+
         // Obtener el userId del UserManager
         val userId = userManager.userId.value
         // Si el userId no está disponible (valor -1), usar un valor alternativo
@@ -158,6 +189,13 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         // Actualizar el estado de la respuesta
                         responseStateFlow.value = chatResponse.response
 
+                        // Detectar etiqueta de emoción en la respuesta y establecer la emoción correspondiente
+                        val detectedEmotion = detectEmotionTag(chatResponse.response)
+                        emotionStateFlow.value = detectedEmotion
+
+                        // Registrar la emoción detectada
+                        Log.d("Blinky", "Emoción detectada: ${detectedEmotion.description}")
+
                         // Leer la respuesta en voz alta
                         tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, null, null)
                     }
@@ -165,6 +203,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                     val errorMsg = "Error en la respuesta: ${response.code()}"
                     Log.e("Blinky", errorMsg)
                     Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+
+                    // Establecer emoción a ERROR para respuesta fallida
+                    emotionStateFlow.value = WrenchEmotion.ERROR
                 }
             }
 
@@ -172,6 +213,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 val errorMsg = "Error de conexión: ${t.message}"
                 Log.e("Blinky", errorMsg, t)
                 Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+
+                // Establecer emoción a ERROR para conexión fallida
+                emotionStateFlow.value = WrenchEmotion.ERROR
             }
         })
     }
@@ -216,21 +260,69 @@ fun ChatScreen(
     tts: TextToSpeech,
     onMicClick: () -> Unit
 ) {
-    // Observar el estado del texto reconocido y la respuesta de la API
+    // Observar el estado del texto reconocido, la respuesta de la API y la emoción
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val promptFlow = (context as MainActivity).getPromptStateFlow()
     val promptState = promptFlow.collectAsState(initial = "")
     val responseFlow = context.getResponseStateFlow()
     val responseState = responseFlow.collectAsState(initial = "")
+    val emotionFlow = context.getEmotionStateFlow()
+    val emotionState = emotionFlow.collectAsState(initial = WrenchEmotion.DEFAULT)
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Sección para los ojos (estilo Wrench) - ocupando la mitad de la pantalla
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Ojo izquierdo
+                Text(
+                    text = emotionState.value.leftEye,
+                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                )
+                // Espaciado entre los ojos
+                Spacer(modifier = Modifier.width(48.dp))
+                // Ojo derecho
+                Text(
+                    text = emotionState.value.rightEye,
+                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                )
+            }
+        }
+
+        // Botones para probar las emociones
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Probar emociones:",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            WrenchEmotion.values().forEach { emotion ->
+                EmotionButton(
+                    emotion = emotion,
+                    onClick = { context.setEmotion(emotion) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Sección para el texto reconocido
         Text(
             text = "Texto reconocido:",
@@ -243,7 +335,7 @@ fun ChatScreen(
         )
 
         // Sección para la respuesta de la API
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Respuesta de Ollama:",
             style = MaterialTheme.typography.bodyLarge
@@ -260,6 +352,34 @@ fun ChatScreen(
             Icon(Icons.Default.Phone, contentDescription = "Micrófono")
             Spacer(modifier = Modifier.width(8.dp))
             Text("Hablar")
+        }
+    }
+}
+
+@Composable
+fun EmotionButton(
+    emotion: WrenchEmotion,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = CircleShape,
+        modifier = Modifier.size(40.dp),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = emotion.leftEye,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(
+                text = emotion.rightEye,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
