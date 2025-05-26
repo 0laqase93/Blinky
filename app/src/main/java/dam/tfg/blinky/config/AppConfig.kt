@@ -12,6 +12,8 @@ object AppConfig {
     private const val KEY_SERVER_IP = "server_ip"
     private const val DEFAULT_SERVER_IP = "89.39.156.185"
     private const val DEFAULT_SERVER_PORT = "8080"
+    private const val KEY_AI_PERSONALITY = "ai_personality"
+    private const val DEFAULT_AI_PERSONALITY = "Normal"
 
     private lateinit var prefs: SharedPreferences
 
@@ -53,5 +55,21 @@ object AppConfig {
      */
     fun getServerUrl(): String {
         return "http://${getServerIp()}:${getServerPort()}"
+    }
+
+    /**
+     * Get the AI personality setting.
+     * @return The AI personality from SharedPreferences or the default value.
+     */
+    fun getAIPersonality(): String {
+        return prefs.getString(KEY_AI_PERSONALITY, DEFAULT_AI_PERSONALITY) ?: DEFAULT_AI_PERSONALITY
+    }
+
+    /**
+     * Set the AI personality setting.
+     * @param personality The new AI personality value.
+     */
+    fun setAIPersonality(personality: String) {
+        prefs.edit().putString(KEY_AI_PERSONALITY, personality).apply()
     }
 }

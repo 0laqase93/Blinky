@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,7 +50,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -927,6 +932,13 @@ fun SettingsScreen() {
     var showEditIpDialog by remember { mutableStateOf(false) }
     var newIpAddress by remember { mutableStateOf("") }
 
+    // State for AI personality
+    var aiPersonality by remember { mutableStateOf(AppConfig.getAIPersonality()) }
+    var isPersonalityMenuExpanded by remember { mutableStateOf(false) }
+
+    // List of available AI personalities
+    val personalities = listOf("Normal", "Amigable", "Profesional", "Divertido", "Sarcástico")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1104,6 +1116,85 @@ fun SettingsScreen() {
                         }
                     ) {
                         Text("Editar")
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // AI settings card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "IA",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // AI Personality dropdown
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SmartToy,
+                            contentDescription = "AI Personality",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Text(
+                                text = "Personalidad",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Selecciona el estilo de comunicación de la IA",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // Dropdown menu for personality selection
+                    Box {
+                        Button(
+                            onClick = { isPersonalityMenuExpanded = true }
+                        ) {
+                            Text(aiPersonality)
+                        }
+
+                        DropdownMenu(
+                            expanded = isPersonalityMenuExpanded,
+                            onDismissRequest = { isPersonalityMenuExpanded = false }
+                        ) {
+                            personalities.forEach { personality ->
+                                DropdownMenuItem(
+                                    text = { Text(personality) },
+                                    onClick = {
+                                        aiPersonality = personality
+                                        AppConfig.setAIPersonality(personality)
+                                        isPersonalityMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
