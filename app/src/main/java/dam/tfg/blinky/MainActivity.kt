@@ -11,18 +11,38 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
@@ -82,6 +102,30 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)
 
+        // Configurar listener para detectar cuando termina de hablar
+        tts.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                // No es necesario hacer nada al inicio
+            }
+
+            override fun onDone(utteranceId: String?) {
+                // Cuando termina de hablar, volver a la emoción NEUTRAL
+                runOnUiThread {
+                    Log.d("Blinky", "TextToSpeech terminado, volviendo a emoción NEUTRAL")
+                    emotionStateFlow.value = WrenchEmotion.NEUTRAL
+                }
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                // En caso de error, también volver a NEUTRAL
+                runOnUiThread {
+                    Log.e("Blinky", "Error en TextToSpeech, volviendo a emoción NEUTRAL")
+                    emotionStateFlow.value = WrenchEmotion.NEUTRAL
+                }
+            }
+        })
+
         // Configurar reconocimiento de voz
         speechRecognizer = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -133,7 +177,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     }
 
     // Actualizar el texto reconocido, notificar el cambio de estado y enviar a la API
-    private fun updatePrompt(newPrompt: String) {
+    fun updatePrompt(newPrompt: String) {
         promptStateFlow.value = newPrompt
         // Enviar el texto reconocido a la API
         sendPromptToApi(newPrompt)
@@ -189,15 +233,23 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         // Actualizar el estado de la respuesta
                         responseStateFlow.value = chatResponse.response
 
-                        // Detectar etiqueta de emoción en la respuesta y establecer la emoción correspondiente
-                        val detectedEmotion = detectEmotionTag(chatResponse.response)
+                        // Detectar etiqueta de emoción desde el campo reaction y establecer la emoción correspondiente
+                        val detectedEmotion = if (chatResponse.reaction.isNotEmpty()) {
+                            detectEmotionTag(chatResponse.reaction)
+                        } else {
+                            // Fallback: intentar detectar en el texto de respuesta si reaction está vacío
+                            detectEmotionTag(chatResponse.response)
+                        }
                         emotionStateFlow.value = detectedEmotion
 
                         // Registrar la emoción detectada
-                        Log.d("Blinky", "Emoción detectada: ${detectedEmotion.description}")
+                        Log.d("Blinky", "Emoción detectada: ${detectedEmotion.description} (de ${if (chatResponse.reaction.isNotEmpty()) "reaction" else "response"})")
 
                         // Leer la respuesta en voz alta
-                        tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, null, null)
+                        val utteranceId = "utterance_${System.currentTimeMillis()}"
+                        val params = Bundle()
+                        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+                        tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
                     }
                 } else {
                     val errorMsg = "Error en la respuesta: ${response.code()}"
@@ -270,6 +322,16 @@ fun ChatScreen(
     val emotionFlow = context.getEmotionStateFlow()
     val emotionState = emotionFlow.collectAsState(initial = WrenchEmotion.DEFAULT)
 
+    // Estado para el campo de texto y el diálogo
+    val textInputState = remember { mutableStateOf("") }
+    val showTextDialog = remember { mutableStateOf(false) }
+
+    // Focus requester para el campo de texto
+    val textFieldFocusRequester = remember { FocusRequester() }
+
+    // Keyboard controller para mostrar el teclado
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -287,37 +349,40 @@ fun ChatScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ojo izquierdo
-                Text(
-                    text = emotionState.value.leftEye,
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
-                )
+                // Ojo izquierdo con animación
+                AnimatedContent(
+                    targetState = emotionState.value.leftEye,
+                    transitionSpec = {
+                        // Definir la animación para la transición
+                        (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
+                            .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "LeftEyeAnimation"
+                ) { targetEye ->
+                    Text(
+                        text = targetEye,
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                    )
+                }
+
                 // Espaciado entre los ojos
                 Spacer(modifier = Modifier.width(48.dp))
-                // Ojo derecho
-                Text(
-                    text = emotionState.value.rightEye,
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
-                )
-            }
-        }
 
-        // Botones para probar las emociones
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Probar emociones:",
-            style = MaterialTheme.typography.bodySmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            WrenchEmotion.values().forEach { emotion ->
-                EmotionButton(
-                    emotion = emotion,
-                    onClick = { context.setEmotion(emotion) }
-                )
+                // Ojo derecho con animación
+                AnimatedContent(
+                    targetState = emotionState.value.rightEye,
+                    transitionSpec = {
+                        // Definir la animación para la transición
+                        (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
+                            .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "RightEyeAnimation"
+                ) { targetEye ->
+                    Text(
+                        text = targetEye,
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                    )
+                }
             }
         }
 
@@ -346,40 +411,120 @@ fun ChatScreen(
             style = MaterialTheme.typography.bodyMedium
         )
 
-        // Botón para hablar
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onMicClick) {
-            Icon(Icons.Default.Phone, contentDescription = "Micrófono")
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Hablar")
+        // Botones FAB para escribir y hablar
+        Spacer(modifier = Modifier.weight(1f))
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            // FAB para escribir (encima del micrófono)
+            FloatingActionButton(
+                onClick = { showTextDialog.value = true },
+                modifier = Modifier
+                    .padding(bottom = 100.dp, end = 16.dp)
+                    .size(70.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Escribir mensaje",
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            // FAB para hablar (micrófono)
+            FloatingActionButton(
+                onClick = onMicClick,
+                modifier = Modifier
+                    .padding(bottom = 0.dp, end = 16.dp)
+                    .offset(y = 32.dp)  // Usar offset en lugar de padding negativo
+                    .size(70.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = "Micrófono",
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
     }
-}
 
-@Composable
-fun EmotionButton(
-    emotion: WrenchEmotion,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        shape = CircleShape,
-        modifier = Modifier.size(40.dp),
-        contentPadding = PaddingValues(0.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+    // Popup de texto cuando se presiona el FAB de edición
+    if (showTextDialog.value) {
+        // Fondo oscurecido que ocupa toda la pantalla
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable { showTextDialog.value = false },
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = emotion.leftEye,
-                style = MaterialTheme.typography.bodySmall
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
-                text = emotion.rightEye,
-                style = MaterialTheme.typography.bodySmall
-            )
+            // Tarjeta del diálogo que no propaga clics al fondo
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(16.dp)
+                    .clickable(onClick = { /* Consumir el clic para evitar que se cierre */ }, enabled = true),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Escribe tu mensaje",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = textInputState.value,
+                        onValueChange = { newValue -> textInputState.value = newValue },
+                        label = { Text(text = "Mensaje") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(textFieldFocusRequester),
+                        singleLine = false,
+                        minLines = 3,
+                        maxLines = 5
+                    )
+
+                    // Solicitar el foco y mostrar el teclado cuando aparece el diálogo
+                    LaunchedEffect(showTextDialog.value) {
+                        if (showTextDialog.value) {
+                            textFieldFocusRequester.requestFocus()
+                            keyboardController?.show()
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = { showTextDialog.value = false }
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (textInputState.value.isNotBlank()) {
+                                    context.updatePrompt(textInputState.value)
+                                    textInputState.value = ""
+                                    showTextDialog.value = false
+                                }
+                            },
+                            enabled = textInputState.value.isNotBlank()
+                        ) {
+                            Text("Enviar")
+                        }
+                    }
+                }
+            }
         }
     }
 }
