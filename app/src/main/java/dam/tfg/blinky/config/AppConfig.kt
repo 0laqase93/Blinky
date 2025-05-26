@@ -13,7 +13,9 @@ object AppConfig {
     private const val DEFAULT_SERVER_IP = "89.39.156.185"
     private const val DEFAULT_SERVER_PORT = "8080"
     private const val KEY_AI_PERSONALITY = "ai_personality"
-    private const val DEFAULT_AI_PERSONALITY = "Normal"
+    private const val DEFAULT_AI_PERSONALITY = "Motivadora"
+    private const val KEY_AI_PERSONALITY_ID = "ai_personality_id"
+    private const val DEFAULT_AI_PERSONALITY_ID = -1L
 
     private lateinit var prefs: SharedPreferences
 
@@ -71,5 +73,33 @@ object AppConfig {
      */
     fun setAIPersonality(personality: String) {
         prefs.edit().putString(KEY_AI_PERSONALITY, personality).apply()
+    }
+
+    /**
+     * Get the AI personality ID setting.
+     * @return The AI personality ID from SharedPreferences or the default value.
+     */
+    fun getAIPersonalityId(): Long {
+        return prefs.getLong(KEY_AI_PERSONALITY_ID, DEFAULT_AI_PERSONALITY_ID)
+    }
+
+    /**
+     * Set the AI personality ID setting.
+     * @param personalityId The new AI personality ID value.
+     */
+    fun setAIPersonalityId(personalityId: Long) {
+        prefs.edit().putLong(KEY_AI_PERSONALITY_ID, personalityId).apply()
+    }
+
+    /**
+     * Set both the AI personality name and ID.
+     * @param personality The new AI personality name.
+     * @param personalityId The new AI personality ID.
+     */
+    fun setAIPersonalityWithId(personality: String, personalityId: Long) {
+        prefs.edit()
+            .putString(KEY_AI_PERSONALITY, personality)
+            .putLong(KEY_AI_PERSONALITY_ID, personalityId)
+            .apply()
     }
 }

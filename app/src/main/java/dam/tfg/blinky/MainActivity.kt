@@ -49,6 +49,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dam.tfg.blinky.api.RetrofitClient
+import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.dataclass.ChatDTO
 import dam.tfg.blinky.dataclass.ChatResponse
 import dam.tfg.blinky.dataclass.WrenchEmotion
@@ -229,7 +230,11 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             val email = userManager.userEmail.value
             Math.abs(email.hashCode().toLong())
         }
-        val chatDTO = ChatDTO(prompt, finalUserId)
+        // Get the personality ID from AppConfig
+        val personalityId = AppConfig.getAIPersonalityId()
+        val personalityName = AppConfig.getAIPersonality()
+        Log.d("Blinky", "Sending prompt with personality: $personalityName (ID: $personalityId)")
+        val chatDTO = ChatDTO(prompt, finalUserId, personalityId)
 
         RetrofitClient.api.sendPrompt(chatDTO).enqueue(object : Callback<ChatResponse> {
             override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {

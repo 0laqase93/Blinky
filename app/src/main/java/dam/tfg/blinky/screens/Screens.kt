@@ -72,6 +72,7 @@ import androidx.compose.material3.TimePickerLayoutType
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -92,16 +93,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import dam.tfg.blinky.config.AppConfig
+import dam.tfg.blinky.dataclass.PersonalityResponseDTO
+import dam.tfg.blinky.presentation.viewmodel.PersonalityViewModel
 import dam.tfg.blinky.utils.CalendarUtils
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.UserManager
 import kotlinx.coroutines.delay
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.time.temporal.TemporalAdjusters
+import org.threeten.bp.DayOfWeek
+import org.threeten.bp.LocalDate
+import org.threeten.bp.LocalTime
+import org.threeten.bp.format.DateTimeFormatter
+import org.threeten.bp.format.TextStyle
+import org.threeten.bp.temporal.TemporalAdjusters
 import java.util.Locale
 
 // Data class to represent a calendar event
@@ -391,7 +394,7 @@ fun EventCard(
                     )
 
                     // Duration
-                    val duration = java.time.Duration.between(event.time, event.endTime)
+                    val duration = org.threeten.bp.Duration.between(event.time, event.endTime)
                     val hours = duration.toHours()
                     val minutes = duration.toMinutesPart()
                     val durationText = when {
@@ -533,12 +536,12 @@ fun EventCard(
 
                             // Convert LocalDate and LocalTime to milliseconds
                             val startMillis = event.date.atTime(event.time)
-                                .atZone(java.time.ZoneId.systemDefault())
+                                .atZone(org.threeten.bp.ZoneId.systemDefault())
                                 .toInstant()
                                 .toEpochMilli()
 
                             val endMillis = event.date.atTime(event.endTime)
-                                .atZone(java.time.ZoneId.systemDefault())
+                                .atZone(org.threeten.bp.ZoneId.systemDefault())
                                 .toInstant()
                                 .toEpochMilli()
 
@@ -842,7 +845,7 @@ fun AddEventDialog(
                 }
 
                 // Time duration display
-                val duration = java.time.Duration.between(selectedStartTime, selectedEndTime)
+                val duration = org.threeten.bp.Duration.between(selectedStartTime, selectedEndTime)
                 val hours = duration.toHours()
                 val minutes = duration.toMinutesPart()
                 val durationText = when {
@@ -932,12 +935,33 @@ fun SettingsScreen() {
     var showEditIpDialog by remember { mutableStateOf(false) }
     var newIpAddress by remember { mutableStateOf("") }
 
+    // Initialize PersonalityViewModel
+    val personalityViewModel = androidx.lifecycle.viewmodel.compose.viewModel<PersonalityViewModel>(
+        factory = PersonalityViewModel.Factory()
+    )
+    val personalitiesList by personalityViewModel.personalities.collectAsState<List<PersonalityResponseDTO>, List<PersonalityResponseDTO>>(initial = emptyList())
+
+    // Access state values
+    val isLoadingPersonalities by remember { personalityViewModel.isLoading }
+    val personalitiesError by remember { personalityViewModel.error }
+
     // State for AI personality
     var aiPersonality by remember { mutableStateOf(AppConfig.getAIPersonality()) }
     var isPersonalityMenuExpanded by remember { mutableStateOf(false) }
 
-    // List of available AI personalities
-    val personalities = listOf("Normal", "Amigable", "Profesional", "Divertido", "Sarcástico")
+    // Fallback list of personalities if API fails
+    val fallbackPersonalities = listOf("Normal", "Amigable", "Profesional", "Divertido", "Sarcástico")
+
+    // Use API personalities if available, otherwise use fallback
+    val personalities = if (personalitiesList.isNotEmpty()) personalitiesList else fallbackPersonalities.map { 
+        // Create dummy PersonalityResponseDTO objects for fallback personalities
+        PersonalityResponseDTO(
+            id = -1, // Use -1 as ID for fallback personalities
+            name = it,
+            basePrompt = "",
+            description = ""
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -1175,9 +1199,23 @@ fun SettingsScreen() {
                     // Dropdown menu for personality selection
                     Box {
                         Button(
-                            onClick = { isPersonalityMenuExpanded = true }
+                            onClick = { isPersonalityMenuExpanded = true },
+                            enabled = !isLoadingPersonalities
                         ) {
-                            Text(aiPersonality)
+                            if (isLoadingPersonalities) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Text("Cargando...")
+                                }
+                            } else {
+                                Text(aiPersonality)
+                            }
                         }
 
                         DropdownMenu(
@@ -1186,15 +1224,25 @@ fun SettingsScreen() {
                         ) {
                             personalities.forEach { personality ->
                                 DropdownMenuItem(
-                                    text = { Text(personality) },
+                                    text = { Text(personality.name) },
                                     onClick = {
-                                        aiPersonality = personality
-                                        AppConfig.setAIPersonality(personality)
+                                        aiPersonality = personality.name
+                                        AppConfig.setAIPersonalityWithId(personality.name, personality.id)
                                         isPersonalityMenuExpanded = false
                                     }
                                 )
                             }
                         }
+                    }
+
+                    // Show error message if API call fails
+                    if (personalitiesError != null && personalitiesList.isEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Error al cargar personalidades. Usando valores predeterminados.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
