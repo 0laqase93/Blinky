@@ -86,6 +86,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     // StateFlow para manejar la emoción actual
     private val emotionStateFlow = MutableStateFlow(WrenchEmotion.DEFAULT)
 
+    // Variable para controlar si TTS está hablando actualmente
+    private var isSpeaking = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -113,6 +116,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 runOnUiThread {
                     Log.d("Blinky", "TextToSpeech terminado, volviendo a emoción NEUTRAL")
                     emotionStateFlow.value = WrenchEmotion.NEUTRAL
+                    isSpeaking = false
                 }
             }
 
@@ -122,6 +126,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 runOnUiThread {
                     Log.e("Blinky", "Error en TextToSpeech, volviendo a emoción NEUTRAL")
                     emotionStateFlow.value = WrenchEmotion.NEUTRAL
+                    isSpeaking = false
                 }
             }
         })
@@ -249,6 +254,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         val utteranceId = "utterance_${System.currentTimeMillis()}"
                         val params = Bundle()
                         params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+                        isSpeaking = true
                         tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
                     }
                 } else {
@@ -272,8 +278,26 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         })
     }
 
-    // Función para iniciar el reconocimiento de voz
+    // Función para detener TTS si está hablando
+    fun stopSpeaking() {
+        if (isSpeaking && tts.isSpeaking) {
+            tts.stop()
+            isSpeaking = false
+            Log.d("Blinky", "TextToSpeech detenido manualmente")
+            // Volver a la emoción NEUTRAL cuando se detiene manualmente
+            emotionStateFlow.value = WrenchEmotion.NEUTRAL
+        }
+    }
+
+    // Función para iniciar el reconocimiento de voz o detener TTS si está hablando
     private fun startSpeechRecognition() {
+        // Si TTS está hablando, detenerlo
+        if (isSpeaking && tts.isSpeaking) {
+            stopSpeaking()
+            // No return here, continue to start speech recognition
+        }
+
+        // Iniciar reconocimiento de voz (siempre, incluso después de detener TTS)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
@@ -300,6 +324,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     // Liberar recursos en onDestroy
     override fun onDestroy() {
+        isSpeaking = false
         tts.stop()
         tts.shutdown()
         super.onDestroy()
