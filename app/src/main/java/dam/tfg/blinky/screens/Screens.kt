@@ -2,27 +2,23 @@ package dam.tfg.blinky.screens
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.Manifest
 import android.provider.CalendarContract
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -53,22 +49,16 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerDefaults
-import androidx.compose.material3.TimePickerLayoutType
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,28 +67,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.config.AppConfig
+import dam.tfg.blinky.dataclass.EventDTO
+import dam.tfg.blinky.dataclass.EventResponseDTO
 import dam.tfg.blinky.dataclass.PersonalityResponseDTO
 import dam.tfg.blinky.presentation.viewmodel.PersonalityViewModel
 import dam.tfg.blinky.utils.CalendarUtils
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.UserManager
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import org.threeten.bp.DayOfWeek
 import org.threeten.bp.LocalDate
 import org.threeten.bp.LocalTime
@@ -134,6 +126,15 @@ fun CalendarScreen() {
 
     // State for showing the add event dialog
     var showAddEventDialog by remember { mutableStateOf(false) }
+
+    // Context for showing toasts
+    val context = LocalContext.current
+
+    // Initialize UserManager
+    val userManager = UserManager.getInstance(context)
+
+    // Coroutine scope for API calls
+    val coroutineScope = rememberCoroutineScope()
 
     // Format for displaying dates
     val dateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES"))
@@ -311,16 +312,119 @@ fun CalendarScreen() {
                 selectedDate = selectedDate,
                 onDismiss = { showAddEventDialog = false },
                 onAddEvent = { title, time, endTime, description, location ->
-                    events.add(
-                        CalendarEvent(
-                            title = title,
-                            date = selectedDate,
-                            time = time,
-                            endTime = endTime,
-                            description = description,
-                            location = location
-                        )
+                    // Create a new event in memory
+                    val newEvent = CalendarEvent(
+                        title = title,
+                        date = selectedDate,
+                        time = time,
+                        endTime = endTime,
+                        description = description,
+                        location = location
                     )
+
+                    // Add to local list
+                    events.add(newEvent)
+
+                    // Save to database via API
+                    coroutineScope.launch {
+                        try {
+                            // Convert LocalDate and LocalTime to LocalDateTime
+                            val startDateTime = java.time.LocalDateTime.of(
+                                selectedDate.year,
+                                selectedDate.monthValue,
+                                selectedDate.dayOfMonth,
+                                time.hour,
+                                time.minute,
+                                0
+                            )
+
+                            val endDateTime = java.time.LocalDateTime.of(
+                                selectedDate.year,
+                                selectedDate.monthValue,
+                                selectedDate.dayOfMonth,
+                                endTime.hour,
+                                endTime.minute,
+                                0
+                            )
+
+                            // Get userId from UserManager
+                            val userId = userManager.userId.value
+
+                            // Check if userId is valid
+                            if (userId <= 0) {
+                                throw Exception("No se pudo obtener el ID de usuario. Por favor, inicie sesión nuevamente.")
+                            }
+
+                            // Create EventDTO
+                            val eventDTO = EventDTO(
+                                title = title,
+                                startTime = startDateTime,
+                                endTime = endDateTime,
+                                location = if (location.isBlank()) null else location,
+                                description = if (description.isBlank()) null else description,
+                                userId = userId
+                            )
+
+                            // Call API asynchronously
+                            RetrofitClient.eventApi.createEvent(eventDTO).enqueue(object : Callback<EventResponseDTO> {
+                                override fun onResponse(call: Call<EventResponseDTO>, response: Response<EventResponseDTO>) {
+                                    if (response.isSuccessful && (response.body()?.success == true || response.code() == 201)) {
+                                        // Show success message
+                                        val successMessage = response.body()?.message ?: "Evento guardado correctamente"
+                                        Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // Get error details
+                                        val errorCode = response.code()
+                                        val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+                                        val responseMessage = response.body()?.message
+
+                                        // Show error message with more details
+                                        val errorMessage = when {
+                                            responseMessage != null -> responseMessage
+                                            errorCode == 401 -> "Error de autenticación: Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+                                            errorCode == 403 -> "Error de permisos: No tiene permisos para crear eventos."
+                                            errorCode == 404 -> "Error: El servicio de eventos no está disponible."
+                                            errorCode == 500 -> "Error del servidor: Problema interno del servidor."
+                                            else -> "Error al guardar el evento (código $errorCode): $errorBody"
+                                        }
+
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                        Log.e("CalendarScreen", "API Error: $errorCode - $errorBody")
+
+                                        // Remove from local list if API call failed
+                                        events.remove(newEvent)
+                                    }
+                                }
+
+                                override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
+                                    // Handle network or other errors
+                                    val errorMessage = when {
+                                        t.message?.contains("timeout") == true -> 
+                                            "Error de conexión: Tiempo de espera agotado. Compruebe su conexión a Internet."
+                                        t.message?.contains("Unable to resolve host") == true -> 
+                                            "Error de conexión: No se puede conectar al servidor. Compruebe su conexión a Internet."
+                                        else -> 
+                                            "Error al guardar el evento: ${t.message ?: "Error desconocido"}"
+                                    }
+
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                    Log.e("CalendarScreen", "Error saving event", t)
+
+                                    // Remove from local list if API call failed
+                                    events.remove(newEvent)
+                                }
+                            })
+                        } catch (e: Exception) {
+                            // Handle exceptions that occur before the API call (date conversion, userId validation)
+                            val errorMessage = "Error al preparar el evento: ${e.message ?: "Error desconocido"}"
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            Log.e("CalendarScreen", "Error preparing event", e)
+
+                            // Remove from local list if preparation failed
+                            events.remove(newEvent)
+                        }
+                    }
+
                     showAddEventDialog = false
                 }
             )
@@ -708,6 +812,8 @@ fun AddEventDialog(
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
     var timeValidationError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Initialize with current time rounded to nearest hour
     val currentTime = LocalTime.now()
@@ -890,6 +996,16 @@ fun AddEventDialog(
                     minLines = 2,
                     maxLines = 4
                 )
+
+                // Error message
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         },
         confirmButton = {
@@ -905,9 +1021,17 @@ fun AddEventDialog(
                         )
                     }
                 },
-                enabled = title.isNotBlank() && timeValidationError == null
+                enabled = title.isNotBlank() && timeValidationError == null && !isLoading
             ) {
-                Text("Añadir")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Añadir")
+                }
             }
         },
         dismissButton = {
