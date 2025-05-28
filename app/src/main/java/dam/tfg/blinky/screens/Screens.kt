@@ -33,9 +33,12 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SmartToy
@@ -76,6 +79,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dam.tfg.blinky.api.RetrofitClient
@@ -102,6 +106,7 @@ import java.util.Locale
 // Data class to represent a calendar event
 data class CalendarEvent(
     val id: String = java.util.UUID.randomUUID().toString(),
+    val apiId: Long? = null,  // ID from the API response
     val title: String,
     val date: LocalDate,
     val time: LocalTime,
@@ -127,6 +132,18 @@ fun CalendarScreen() {
     // State for showing the add event dialog
     var showAddEventDialog by remember { mutableStateOf(false) }
 
+    // State for showing the edit event dialog
+    var showEditEventDialog by remember { mutableStateOf(false) }
+
+    // State for the event being edited
+    var eventBeingEdited by remember { mutableStateOf<CalendarEvent?>(null) }
+
+    // State for showing the delete confirmation dialog
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+    // State for the event being deleted
+    var eventBeingDeleted by remember { mutableStateOf<CalendarEvent?>(null) }
+
     // Context for showing toasts
     val context = LocalContext.current
 
@@ -138,6 +155,129 @@ fun CalendarScreen() {
 
     // Format for displaying dates
     val dateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES"))
+
+    // State for loading events
+    var isLoadingEvents by remember { mutableStateOf(false) }
+    var loadingError by remember { mutableStateOf<String?>(null) }
+
+    // Function to load user events from API
+    fun loadUserEvents() {
+        coroutineScope.launch {
+            try {
+                isLoadingEvents = true
+                loadingError = null
+
+                // Get userId from UserManager
+                val userId = userManager.userId.value
+
+                // Check if userId is valid
+                if (userId <= 0) {
+                    throw Exception("No se pudo obtener el ID de usuario. Por favor, inicie sesión nuevamente.")
+                }
+
+                // Call API asynchronously
+                RetrofitClient.eventApi.getUserEvents(userId).enqueue(object : Callback<List<EventDTO>> {
+                    override fun onResponse(call: Call<List<EventDTO>>, response: Response<List<EventDTO>>) {
+                        isLoadingEvents = false
+
+                        if (response.isSuccessful && response.body() != null) {
+                            // Clear existing events
+                            events.clear()
+
+                            // Convert EventDTO to CalendarEvent and add to list
+                            response.body()?.forEach { eventDTO ->
+                                try {
+                                    // Convert LocalDateTime to LocalDate and LocalTime
+                                    val startDate = LocalDate.of(
+                                        eventDTO.startTime.year,
+                                        eventDTO.startTime.monthValue,
+                                        eventDTO.startTime.dayOfMonth
+                                    )
+
+                                    val startTime = LocalTime.of(
+                                        eventDTO.startTime.hour,
+                                        eventDTO.startTime.minute
+                                    )
+
+                                    val endTime = LocalTime.of(
+                                        eventDTO.endTime.hour,
+                                        eventDTO.endTime.minute
+                                    )
+
+                                    // Create CalendarEvent
+                                    val calendarEvent = CalendarEvent(
+                                        apiId = eventDTO.id,  // Assuming EventDTO has an id field
+                                        title = eventDTO.title,
+                                        date = startDate,
+                                        time = startTime,
+                                        endTime = endTime,
+                                        description = eventDTO.description ?: "",
+                                        location = eventDTO.location ?: ""
+                                    )
+
+                                    // Add to list
+                                    events.add(calendarEvent)
+                                } catch (e: Exception) {
+                                    Log.e("CalendarScreen", "Error converting event", e)
+                                }
+                            }
+
+                            // Show success message
+                            Toast.makeText(context, "Eventos cargados correctamente", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // Get error details
+                            val errorCode = response.code()
+                            val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+
+                            // Show error message with more details
+                            val errorMessage = when {
+                                errorCode == 401 -> "Error de autenticación: Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+                                errorCode == 403 -> "Error de permisos: No tiene permisos para ver eventos."
+                                errorCode == 404 -> "Error: El servicio de eventos no está disponible."
+                                errorCode == 500 -> "Error del servidor: Problema interno del servidor."
+                                else -> "Error al cargar los eventos (código $errorCode): $errorBody"
+                            }
+
+                            loadingError = errorMessage
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            Log.e("CalendarScreen", "API Error: $errorCode - $errorBody")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<List<EventDTO>>, t: Throwable) {
+                        isLoadingEvents = false
+
+                        // Handle network or other errors
+                        val errorMessage = when {
+                            t.message?.contains("timeout") == true -> 
+                                "Error de conexión: Tiempo de espera agotado. Compruebe su conexión a Internet."
+                            t.message?.contains("Unable to resolve host") == true -> 
+                                "Error de conexión: No se puede conectar al servidor. Compruebe su conexión a Internet."
+                            else -> 
+                                "Error al cargar los eventos: ${t.message ?: "Error desconocido"}"
+                        }
+
+                        loadingError = errorMessage
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                        Log.e("CalendarScreen", "Error loading events", t)
+                    }
+                })
+            } catch (e: Exception) {
+                isLoadingEvents = false
+
+                // Handle exceptions that occur before the API call
+                val errorMessage = "Error al preparar la carga de eventos: ${e.message ?: "Error desconocido"}"
+                loadingError = errorMessage
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                Log.e("CalendarScreen", "Error preparing to load events", e)
+            }
+        }
+    }
+
+    // Load events when the screen is first displayed
+    LaunchedEffect(key1 = Unit) {
+        loadUserEvents()
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -268,19 +408,89 @@ fun CalendarScreen() {
             Divider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Selected date display
-            Text(
-                text = "Eventos para ${selectedDate.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("es", "ES")))}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            // Selected date display with refresh button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Eventos para ${selectedDate.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("es", "ES")))}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Refresh button
+                IconButton(
+                    onClick = { loadUserEvents() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Recargar eventos"
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Loading indicator
+            if (isLoadingEvents) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Cargando eventos...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            // Error message
+            if (!isLoadingEvents && loadingError != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = "Error",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = loadingError ?: "Error desconocido",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { loadUserEvents() }
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+            }
 
             // Events for the selected date
             val selectedDateEvents = events.filter { it.date.isEqual(selectedDate) }
 
-            if (selectedDateEvents.isEmpty()) {
+            if (!isLoadingEvents && loadingError == null && selectedDateEvents.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -293,12 +503,20 @@ fun CalendarScreen() {
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
-            } else {
+            } else if (!isLoadingEvents && loadingError == null) {
                 LazyColumn {
                     items(selectedDateEvents.sortedBy { it.time }) { event ->
                         EventCard(
                             event = event,
-                            onDelete = { events.remove(event) }
+                            onDelete = { 
+                                // Show confirmation dialog
+                                eventBeingDeleted = event
+                                showDeleteConfirmDialog = true
+                            },
+                            onEdit = {
+                                eventBeingEdited = event
+                                showEditEventDialog = true
+                            }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -369,6 +587,17 @@ fun CalendarScreen() {
                             RetrofitClient.eventApi.createEvent(eventDTO).enqueue(object : Callback<EventResponseDTO> {
                                 override fun onResponse(call: Call<EventResponseDTO>, response: Response<EventResponseDTO>) {
                                     if (response.isSuccessful && (response.body()?.success == true || response.code() == 201)) {
+                                        // Get the event ID from the response
+                                        val apiEventId = response.body()?.eventId
+
+                                        // Update the event in the local list with the API ID
+                                        if (apiEventId != null) {
+                                            val index = events.indexOf(newEvent)
+                                            if (index != -1) {
+                                                events[index] = newEvent.copy(apiId = apiEventId)
+                                            }
+                                        }
+
                                         // Show success message
                                         val successMessage = response.body()?.message ?: "Evento guardado correctamente"
                                         Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
@@ -429,13 +658,276 @@ fun CalendarScreen() {
                 }
             )
         }
+
+        // Edit event dialog
+        if (showEditEventDialog && eventBeingEdited != null) {
+            EditEventDialog(
+                event = eventBeingEdited!!,
+                onDismiss = { 
+                    showEditEventDialog = false 
+                    eventBeingEdited = null
+                },
+                onEditEvent = { title, time, endTime, description, location ->
+                    // Get the original event
+                    val originalEvent = eventBeingEdited!!
+
+                    // Create an updated event
+                    val updatedEvent = originalEvent.copy(
+                        title = title,
+                        time = time,
+                        endTime = endTime,
+                        description = description,
+                        location = location,
+                        apiId = originalEvent.apiId  // Preserve the API ID
+                    )
+
+                    // Update the local list
+                    val index = events.indexOf(originalEvent)
+                    if (index != -1) {
+                        events[index] = updatedEvent
+                    }
+
+                    // Update in the database via API
+                    coroutineScope.launch {
+                        try {
+                            // Convert LocalDate and LocalTime to LocalDateTime
+                            val startDateTime = java.time.LocalDateTime.of(
+                                updatedEvent.date.year,
+                                updatedEvent.date.monthValue,
+                                updatedEvent.date.dayOfMonth,
+                                time.hour,
+                                time.minute,
+                                0
+                            )
+
+                            val endDateTime = java.time.LocalDateTime.of(
+                                updatedEvent.date.year,
+                                updatedEvent.date.monthValue,
+                                updatedEvent.date.dayOfMonth,
+                                endTime.hour,
+                                endTime.minute,
+                                0
+                            )
+
+                            // Get userId from UserManager
+                            val userId = userManager.userId.value
+
+                            // Check if userId is valid
+                            if (userId <= 0) {
+                                throw Exception("No se pudo obtener el ID de usuario. Por favor, inicie sesión nuevamente.")
+                            }
+
+                            // Create EventDTO
+                            val eventDTO = EventDTO(
+                                title = title,
+                                startTime = startDateTime,
+                                endTime = endDateTime,
+                                location = if (location.isBlank()) null else location,
+                                description = if (description.isBlank()) null else description,
+                                userId = userId
+                            )
+
+                            // Get the event ID from the API response
+                            val eventId = originalEvent.apiId ?: 
+                                throw Exception("ID de evento inválido. No se puede actualizar. Este evento no tiene un ID de API válido.")
+
+                            // Call API asynchronously
+                            RetrofitClient.eventApi.updateEvent(eventId, eventDTO).enqueue(object : Callback<EventResponseDTO> {
+                                override fun onResponse(call: Call<EventResponseDTO>, response: Response<EventResponseDTO>) {
+                                    if (response.isSuccessful && (response.body()?.success == true || response.code() == 201)) {
+                                        // Show success message
+                                        val successMessage = response.body()?.message ?: "Evento actualizado correctamente"
+                                        Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // Get error details
+                                        val errorCode = response.code()
+                                        val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+                                        val responseMessage = response.body()?.message
+
+                                        // Show error message with more details
+                                        val errorMessage = when {
+                                            responseMessage != null -> responseMessage
+                                            errorCode == 401 -> "Error de autenticación: Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+                                            errorCode == 403 -> "Error de permisos: No tiene permisos para actualizar eventos."
+                                            errorCode == 404 -> "Error: El evento no existe o el servicio no está disponible."
+                                            errorCode == 500 -> "Error del servidor: Problema interno del servidor."
+                                            else -> "Error al actualizar el evento (código $errorCode): $errorBody"
+                                        }
+
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                        Log.e("CalendarScreen", "API Error: $errorCode - $errorBody")
+
+                                        // Revert to original event in local list if API call failed
+                                        if (index != -1) {
+                                            events[index] = originalEvent
+                                        }
+                                    }
+                                }
+
+                                override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
+                                    // Handle network or other errors
+                                    val errorMessage = when {
+                                        t.message?.contains("timeout") == true -> 
+                                            "Error de conexión: Tiempo de espera agotado. Compruebe su conexión a Internet."
+                                        t.message?.contains("Unable to resolve host") == true -> 
+                                            "Error de conexión: No se puede conectar al servidor. Compruebe su conexión a Internet."
+                                        else -> 
+                                            "Error al actualizar el evento: ${t.message ?: "Error desconocido"}"
+                                    }
+
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                    Log.e("CalendarScreen", "Error updating event", t)
+
+                                    // Revert to original event in local list if API call failed
+                                    if (index != -1) {
+                                        events[index] = originalEvent
+                                    }
+                                }
+                            })
+                        } catch (e: Exception) {
+                            // Handle exceptions that occur before the API call (date conversion, userId validation)
+                            val errorMessage = "Error al preparar la actualización del evento: ${e.message ?: "Error desconocido"}"
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            Log.e("CalendarScreen", "Error preparing event update", e)
+
+                            // Revert to original event in local list if preparation failed
+                            val index = events.indexOf(updatedEvent)
+                            if (index != -1) {
+                                events[index] = originalEvent
+                            }
+                        }
+                    }
+
+                    showEditEventDialog = false
+                    eventBeingEdited = null
+                }
+            )
+        }
+
+        // Delete confirmation dialog
+        if (showDeleteConfirmDialog && eventBeingDeleted != null) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showDeleteConfirmDialog = false 
+                    eventBeingDeleted = null
+                },
+                title = { Text("Confirmar eliminación") },
+                text = { Text("¿Está seguro de que desea eliminar el evento '${eventBeingDeleted!!.title}'?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val originalEvent = eventBeingDeleted!!
+
+                            // Check if the event has an API ID
+                            if (originalEvent.apiId != null) {
+                                // Call API to delete the event
+                                coroutineScope.launch {
+                                    try {
+                                        // Remove from local list first for immediate UI feedback
+                                        events.remove(originalEvent)
+
+                                        // Call API asynchronously
+                                        RetrofitClient.eventApi.deleteEvent(originalEvent.apiId).enqueue(object : Callback<EventResponseDTO> {
+                                            override fun onResponse(call: Call<EventResponseDTO>, response: Response<EventResponseDTO>) {
+                                                if (response.isSuccessful && (response.body()?.success == true || response.code() == 200 || response.code() == 204)) {
+                                                    // Show success message
+                                                    val successMessage = response.body()?.message ?: "Evento eliminado correctamente"
+                                                    Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    // Get error details
+                                                    val errorCode = response.code()
+                                                    val errorBody = response.errorBody()?.string() ?: "Sin detalles"
+                                                    val responseMessage = response.body()?.message
+
+                                                    // Show error message with more details
+                                                    val errorMessage = when {
+                                                        responseMessage != null -> responseMessage
+                                                        errorCode == 401 -> "Error de autenticación: Su sesión ha expirado. Por favor, inicie sesión nuevamente."
+                                                        errorCode == 403 -> "Error de permisos: No tiene permisos para eliminar eventos."
+                                                        errorCode == 404 -> "Error: El evento no existe o el servicio no está disponible."
+                                                        errorCode == 500 -> "Error del servidor: Problema interno del servidor."
+                                                        else -> "Error al eliminar el evento (código $errorCode): $errorBody"
+                                                    }
+
+                                                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                                    Log.e("CalendarScreen", "API Error: $errorCode - $errorBody")
+
+                                                    // Add back to local list if API call failed
+                                                    if (!events.contains(originalEvent)) {
+                                                        events.add(originalEvent)
+                                                    }
+                                                }
+                                            }
+
+                                            override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
+                                                // Handle network or other errors
+                                                val errorMessage = when {
+                                                    t.message?.contains("timeout") == true -> 
+                                                        "Error de conexión: Tiempo de espera agotado. Compruebe su conexión a Internet."
+                                                    t.message?.contains("Unable to resolve host") == true -> 
+                                                        "Error de conexión: No se puede conectar al servidor. Compruebe su conexión a Internet."
+                                                    else -> 
+                                                        "Error al eliminar el evento: ${t.message ?: "Error desconocido"}"
+                                                }
+
+                                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                                Log.e("CalendarScreen", "Error deleting event", t)
+
+                                                // Add back to local list if API call failed
+                                                if (!events.contains(originalEvent)) {
+                                                    events.add(originalEvent)
+                                                }
+                                            }
+                                        })
+                                    } catch (e: Exception) {
+                                        // Handle exceptions that occur before the API call
+                                        val errorMessage = "Error al preparar la eliminación del evento: ${e.message ?: "Error desconocido"}"
+                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                                        Log.e("CalendarScreen", "Error preparing event deletion", e)
+
+                                        // Add back to local list if preparation failed
+                                        if (!events.contains(originalEvent)) {
+                                            events.add(originalEvent)
+                                        }
+                                    }
+                                }
+                            } else {
+                                // If the event doesn't have an API ID, just remove it from the local list
+                                events.remove(originalEvent)
+                                Toast.makeText(context, "Evento eliminado", Toast.LENGTH_SHORT).show()
+                            }
+
+                            showDeleteConfirmDialog = false
+                            eventBeingDeleted = null
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { 
+                            showDeleteConfirmDialog = false 
+                            eventBeingDeleted = null
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun EventCard(
     event: CalendarEvent,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val context = LocalContext.current
     var showExportProgress by remember { mutableStateOf(false) }
@@ -552,13 +1044,25 @@ fun EventCard(
                     }
                 }
 
-                // Delete button
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Eliminar evento",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                // Action buttons
+                Column {
+                    // Edit button
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar evento",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Delete button
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar evento",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -1031,6 +1535,237 @@ fun AddEventDialog(
                     )
                 } else {
                     Text("Añadir")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditEventDialog(
+    event: CalendarEvent,
+    onDismiss: () -> Unit,
+    onEditEvent: (title: String, time: LocalTime, endTime: LocalTime, description: String, location: String) -> Unit
+) {
+    var title by remember { mutableStateOf(event.title) }
+    var description by remember { mutableStateOf(event.description) }
+    var location by remember { mutableStateOf(event.location) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    var timeValidationError by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Time state initialized with event times
+    var selectedStartTime by remember { mutableStateOf(event.time) }
+    var selectedEndTime by remember { mutableStateOf(event.endTime) }
+
+    // Time picker dialogs using the new component
+    TimePickerDialog(
+        showDialog = showStartTimePicker,
+        initialTime = selectedStartTime,
+        onTimeSelected = { newTime ->
+            selectedStartTime = newTime
+
+            // Validate that end time is after start time
+            if (selectedEndTime.isBefore(newTime)) {
+                // Automatically adjust end time to be 30 minutes after start time
+                selectedEndTime = newTime.plusMinutes(30)
+            }
+
+            timeValidationError = null
+            showStartTimePicker = false
+        },
+        onDismiss = { showStartTimePicker = false },
+        title = "Seleccionar hora de inicio"
+    )
+
+    TimePickerDialog(
+        showDialog = showEndTimePicker,
+        initialTime = selectedEndTime,
+        onTimeSelected = { newTime ->
+            // Validate that end time is after start time
+            if (newTime.isBefore(selectedStartTime)) {
+                timeValidationError = "La hora de fin debe ser posterior a la hora de inicio"
+            } else {
+                selectedEndTime = newTime
+                timeValidationError = null
+                showEndTimePicker = false
+            }
+        },
+        onDismiss = { showEndTimePicker = false },
+        title = "Seleccionar hora de fin"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Editar evento")
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Título") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Start time selection with icon
+                OutlinedTextField(
+                    value = selectedStartTime.format(DateTimeFormatter.ofPattern("HH:mm")),
+                    onValueChange = { },
+                    label = { Text("Hora de inicio") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showStartTimePicker = true },
+                    readOnly = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "Seleccionar hora de inicio",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showStartTimePicker = true }) {
+                            Icon(
+                                imageVector = Icons.Default.AccessTime,
+                                contentDescription = "Cambiar hora de inicio"
+                            )
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // End time selection with icon
+                OutlinedTextField(
+                    value = selectedEndTime.format(DateTimeFormatter.ofPattern("HH:mm")),
+                    onValueChange = { },
+                    label = { Text("Hora de fin") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showEndTimePicker = true },
+                    readOnly = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "Seleccionar hora de fin",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showEndTimePicker = true }) {
+                            Icon(
+                                imageVector = Icons.Default.AccessTime,
+                                contentDescription = "Cambiar hora de fin"
+                            )
+                        }
+                    },
+                    isError = timeValidationError != null
+                )
+
+                // Show validation error if any
+                if (timeValidationError != null) {
+                    Text(
+                        text = timeValidationError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
+
+                // Time duration display
+                val duration = org.threeten.bp.Duration.between(selectedStartTime, selectedEndTime)
+                val hours = duration.toHours()
+                val minutes = duration.toMinutesPart()
+                val durationText = when {
+                    hours > 0 && minutes > 0 -> "$hours h $minutes min"
+                    hours > 0 -> "$hours h"
+                    else -> "$minutes min"
+                }
+
+                Text(
+                    text = "Duración: $durationText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Location field
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Ubicación (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = "Ubicación",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Description field
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Descripción (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4
+                )
+
+                // Error message
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isNotBlank() && timeValidationError == null) {
+                        onEditEvent(
+                            title,
+                            selectedStartTime,
+                            selectedEndTime,
+                            description,
+                            location
+                        )
+                    }
+                },
+                enabled = title.isNotBlank() && timeValidationError == null && !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Guardar")
                 }
             }
         },
