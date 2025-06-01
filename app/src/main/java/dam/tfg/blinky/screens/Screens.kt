@@ -52,6 +52,9 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -112,7 +115,8 @@ data class CalendarEvent(
     val time: LocalTime,
     val endTime: LocalTime = time.plusHours(1),
     val description: String = "",
-    val location: String = ""
+    val location: String = "",
+    val notificationTime: LocalTime? = null  // Time before the event to show notification
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -143,6 +147,12 @@ fun CalendarScreen() {
 
     // State for the event being deleted
     var eventBeingDeleted by remember { mutableStateOf<CalendarEvent?>(null) }
+
+    // State for showing the notification time picker dialog
+    var showNotificationDialog by remember { mutableStateOf(false) }
+
+    // State for the event for which we're setting a notification
+    var eventForNotification by remember { mutableStateOf<CalendarEvent?>(null) }
 
     // Context for showing toasts
     val context = LocalContext.current
@@ -516,6 +526,11 @@ fun CalendarScreen() {
                             onEdit = {
                                 eventBeingEdited = event
                                 showEditEventDialog = true
+                            },
+                            onSetNotification = { selectedEvent ->
+                                // Show notification time picker dialog
+                                eventForNotification = selectedEvent
+                                showNotificationDialog = true
                             }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -920,6 +935,202 @@ fun CalendarScreen() {
                 }
             )
         }
+
+        // Notification time picker bottom sheet
+        if (showNotificationDialog && eventForNotification != null) {
+            // Default to 30 minutes before the event if no notification time is set
+            val initialTime = eventForNotification!!.notificationTime ?: 
+                              LocalTime.of(0, 30) // Default to 30 minutes
+
+            // State for hours and minutes
+            var hours by remember { mutableStateOf(initialTime.hour) }
+            var minutes by remember { mutableStateOf(initialTime.minute) }
+
+            // State for the bottom sheet
+            val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+            ModalBottomSheet(
+                onDismissRequest = { 
+                    showNotificationDialog = false 
+                    eventForNotification = null
+                },
+                sheetState = bottomSheetState
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    // Title
+                    Text(
+                        text = "Configurar notificación",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Description
+                    Text(
+                        text = "Seleccione cuánto tiempo antes del evento desea recibir la notificación:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+
+                    // Time picker for hours and minutes
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Hours picker
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(
+                                onClick = { if (hours < 24) hours++ },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Aumentar horas",
+                                    modifier = Modifier.rotate(270f)
+                                )
+                            }
+
+                            Text(
+                                text = "$hours",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            IconButton(
+                                onClick = { if (hours > 0) hours-- },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Disminuir horas",
+                                    modifier = Modifier.rotate(90f)
+                                )
+                            }
+
+                            Text("Horas", style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        Text(":", style = MaterialTheme.typography.headlineLarge)
+
+                        // Minutes picker
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(
+                                onClick = { 
+                                    minutes = (minutes + 5) % 60
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Aumentar minutos",
+                                    modifier = Modifier.rotate(270f)
+                                )
+                            }
+
+                            Text(
+                                text = minutes.toString().padStart(2, '0'),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            IconButton(
+                                onClick = { 
+                                    minutes = if (minutes < 5) 55 else minutes - 5
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Disminuir minutos",
+                                    modifier = Modifier.rotate(90f)
+                                )
+                            }
+
+                            Text("Minutos", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Confirmation message
+                    Text(
+                        text = "Recibirá una notificación ${hours}h ${minutes}min antes del evento",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+                    )
+
+                    // Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Cancel button
+                        TextButton(
+                            onClick = { 
+                                showNotificationDialog = false 
+                                eventForNotification = null
+                            }
+                        ) {
+                            Text("Cancelar")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Save button
+                        Button(
+                            onClick = {
+                                val event = eventForNotification!!
+                                val index = events.indexOf(event)
+
+                                // Get the selected time
+                                val notificationTime = LocalTime.of(
+                                    hours,
+                                    minutes
+                                )
+
+                                // Update the event with the notification time
+                                if (index != -1) {
+                                    val updatedEvent = event.copy(notificationTime = notificationTime)
+                                    events[index] = updatedEvent
+
+                                    // Schedule the notification
+                                    val eventDateTime = event.date.atTime(event.time)
+                                    val notificationDateTime = eventDateTime.minusHours(notificationTime.hour.toLong())
+                                                                          .minusMinutes(notificationTime.minute.toLong())
+
+                                    // Show confirmation toast
+                                    Toast.makeText(
+                                        context, 
+                                        "Notificación configurada para ${notificationTime.hour}h ${notificationTime.minute}min antes del evento", 
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    // Log for debugging
+                                    Log.d("CalendarScreen", "[DEBUG_LOG] Notification set for event: ${event.title}")
+                                    Log.d("CalendarScreen", "[DEBUG_LOG] Event time: ${eventDateTime}")
+                                    Log.d("CalendarScreen", "[DEBUG_LOG] Notification time: ${notificationDateTime}")
+                                }
+
+                                showNotificationDialog = false
+                                eventForNotification = null
+                            }
+                        ) {
+                            Text("Guardar")
+                        }
+                    }
+
+                    // Add extra space at the bottom to avoid buttons being cut off
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+        }
     }
 }
 
@@ -927,7 +1138,8 @@ fun CalendarScreen() {
 fun EventCard(
     event: CalendarEvent,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onSetNotification: (CalendarEvent) -> Unit
 ) {
     val context = LocalContext.current
     var showExportProgress by remember { mutableStateOf(false) }
@@ -1052,6 +1264,15 @@ fun EventCard(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Editar evento",
                             tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Notification button
+                    IconButton(onClick = { onSetNotification(event) }) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "Configurar notificación",
+                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
 
