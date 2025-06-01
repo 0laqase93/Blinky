@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -45,7 +46,7 @@ fun BottomNavBar(navController: NavController) {
 
         items.forEach { screen ->
             val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-            
+
             NavigationBarItem(
                 icon = { 
                     Icon(
@@ -53,7 +54,10 @@ fun BottomNavBar(navController: NavController) {
                         contentDescription = screen.title
                     ) 
                 },
-                label = { Text(screen.title) },
+                label = { Text(
+                    text = screen.title,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                ) },
                 selected = selected,
                 onClick = {
                     navController.navigate(screen.route) {

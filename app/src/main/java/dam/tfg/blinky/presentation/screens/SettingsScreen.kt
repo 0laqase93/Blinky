@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -310,7 +311,8 @@ fun SettingsScreen() {
                             showEditIpDialog = true 
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            contentColor = Color.White
                         )
                     ) {
                         Text("Editar")
@@ -376,7 +378,8 @@ fun SettingsScreen() {
                             onClick = { isPersonalityMenuExpanded = true },
                             enabled = !isLoadingPersonalities,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                                contentColor = Color.White
                             )
                         ) {
                             if (isLoadingPersonalities) {
@@ -534,7 +537,8 @@ fun SettingsScreen() {
                         },
                         enabled = !hasMicPermission,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            contentColor = Color.White
                         )
                     ) {
                         Text(if (hasMicPermission) "Concedido" else "Conceder")
@@ -586,7 +590,8 @@ fun SettingsScreen() {
                         },
                         enabled = !hasNotificationPermission,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            contentColor = Color.White
                         )
                     ) {
                         Text(if (hasNotificationPermission) "Concedido" else "Conceder")
@@ -631,7 +636,8 @@ fun SettingsScreen() {
                     },
                     enabled = newIpAddress.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        contentColor = Color.White
                     )
                 ) {
                     Text("Guardar")

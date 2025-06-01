@@ -195,7 +195,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                     .clip(CircleShape)
                                     .background(
                                         when {
-                                            isSelected -> MaterialTheme.colorScheme.primary
+                                            isSelected -> dam.tfg.blinky.ui.theme.GoogleBlueLight
                                             isToday -> MaterialTheme.colorScheme.primaryContainer
                                             else -> Color.Transparent
                                         }
@@ -551,7 +551,7 @@ fun EventCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Editar evento",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = dam.tfg.blinky.ui.theme.GoogleBlue
                         )
                     }
 
@@ -573,7 +573,7 @@ fun EventCard(
                 Icon(
                     imageVector = Icons.Default.AccessTime,
                     contentDescription = "Hora",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
 
@@ -594,7 +594,7 @@ fun EventCard(
                     Icon(
                         imageVector = Icons.Default.Place,
                         contentDescription = "Ubicación",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
                     )
 

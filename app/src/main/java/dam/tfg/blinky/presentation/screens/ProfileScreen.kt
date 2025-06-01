@@ -96,7 +96,7 @@ fun EnhancedProfileScreen() {
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile Picture",
                     modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
                 // Default icon if no profile picture
@@ -104,7 +104,7 @@ fun EnhancedProfileScreen() {
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile Picture",
                     modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -129,7 +129,7 @@ fun EnhancedProfileScreen() {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Name",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -151,7 +151,7 @@ fun EnhancedProfileScreen() {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Name",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = dam.tfg.blinky.ui.theme.GoogleBlue
                         )
                     }
                 }
@@ -166,7 +166,7 @@ fun EnhancedProfileScreen() {
                     Icon(
                         imageVector = Icons.Default.Email,
                         contentDescription = "Email",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
@@ -195,12 +195,14 @@ fun EnhancedProfileScreen() {
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                contentColor = Color.White
             )
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Reset Password"
+                contentDescription = "Reset Password",
+                tint = Color.White
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Restablecer Contraseña")
@@ -255,7 +257,11 @@ fun EnhancedProfileScreen() {
                             viewModel.updateUserName(newName)
                             showEditNameDialog = false
                         }
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Guardar")
                 }
@@ -316,7 +322,11 @@ fun EnhancedProfileScreen() {
                     onClick = {
                         showResetPasswordConfirmation = false
                         viewModel.requestPasswordResetEmail()
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Enviar")
                 }
@@ -362,7 +372,11 @@ fun EnhancedProfileScreen() {
                             }
                         }
                     },
-                    enabled = currentPassword.isNotBlank()
+                    enabled = currentPassword.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Verificar")
                 }
@@ -404,7 +418,11 @@ fun EnhancedProfileScreen() {
                             showNewPasswordDialog = false
                         }
                     },
-                    enabled = newPassword.isNotBlank()
+                    enabled = newPassword.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        contentColor = Color.White
+                    )
                 ) {
                     Text("Guardar")
                 }
