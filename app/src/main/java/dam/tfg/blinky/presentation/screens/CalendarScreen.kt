@@ -109,11 +109,15 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddEventDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .size(70.dp), // Fixed size
+                shape = RoundedCornerShape(16.dp) // Consistent shape with other FABs
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Añadir evento"
+                    contentDescription = "Añadir evento",
+                    modifier = Modifier.size(32.dp) // Fixed icon size
                 )
             }
         }

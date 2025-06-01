@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Mic
@@ -43,9 +44,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
+import dam.tfg.blinky.R
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dam.tfg.blinky.api.RetrofitClient
@@ -354,6 +358,8 @@ fun ChatScreen(
     tts: TextToSpeech,
     onMicClick: () -> Unit
 ) {
+    // Define custom font for the avatar eyes
+    val avatarFont = FontFamily(Font(R.font.vt323regular))
     // Observar el estado del texto reconocido, la respuesta de la API y la emoción
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -403,7 +409,10 @@ fun ChatScreen(
                 ) { targetEye ->
                     Text(
                         text = targetEye,
-                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 150.sp,
+                            fontFamily = avatarFont
+                        )
                     )
                 }
 
@@ -422,7 +431,10 @@ fun ChatScreen(
                 ) { targetEye ->
                     Text(
                         text = targetEye,
-                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 150.sp,
+                            fontFamily = avatarFont
+                        )
                     )
                 }
             }
@@ -455,16 +467,21 @@ fun ChatScreen(
 
         // Botones FAB para escribir y hablar
         Spacer(modifier = Modifier.weight(1f))
+
+        // Use a fixed height Box to ensure consistent space for FABs
         Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.CenterEnd
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp), // Fixed height to ensure consistent space
+            contentAlignment = Alignment.TopEnd
         ) {
             // FAB para escribir (encima del micrófono)
             FloatingActionButton(
                 onClick = { showTextDialog.value = true },
                 modifier = Modifier
-                    .padding(bottom = 100.dp, end = 16.dp)
-                    .size(70.dp)
+                    .padding(top = 0.dp, end = 16.dp)
+                    .size(70.dp), // Fixed size
+                shape = RoundedCornerShape(16.dp) // Slightly rounded corners instead of circle
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
@@ -477,9 +494,9 @@ fun ChatScreen(
             FloatingActionButton(
                 onClick = onMicClick,
                 modifier = Modifier
-                    .padding(bottom = 0.dp, end = 16.dp)
-                    .offset(y = 32.dp)  // Usar offset en lugar de padding negativo
-                    .size(70.dp)
+                    .padding(top = 80.dp, end = 16.dp) // Position below the write FAB
+                    .size(70.dp), // Fixed size
+                shape = RoundedCornerShape(16.dp) // Slightly rounded corners instead of circle
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,
