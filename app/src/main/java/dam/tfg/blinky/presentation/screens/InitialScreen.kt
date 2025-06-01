@@ -90,7 +90,7 @@ fun InitialScreen(
                     Text(
                         text = targetEye,
                         style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 200.sp,
+                            fontSize = 300.sp,
                             fontFamily = avatarFont
                         )
                     )
@@ -112,7 +112,7 @@ fun InitialScreen(
                     Text(
                         text = targetEye,
                         style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 200.sp,
+                            fontSize = 300.sp,
                             fontFamily = avatarFont
                         )
                     )
