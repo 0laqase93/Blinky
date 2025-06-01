@@ -282,7 +282,8 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !isLoading
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = dam.tfg.blinky.ui.theme.GoogleBlue)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -299,7 +300,8 @@ fun LoginScreen(
         // Register Button
         TextButton(
             onClick = onNavigateToRegister,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.textButtonColors(contentColor = dam.tfg.blinky.ui.theme.GoogleBlue)
         ) {
             Text("Registrarse")
         }

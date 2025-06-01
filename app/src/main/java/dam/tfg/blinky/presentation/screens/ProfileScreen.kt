@@ -213,7 +213,7 @@ fun EnhancedProfileScreen() {
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
             )
         ) {
             Icon(

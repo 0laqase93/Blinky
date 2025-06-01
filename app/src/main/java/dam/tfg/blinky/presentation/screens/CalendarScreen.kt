@@ -384,7 +384,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Añadir evento",
-                    modifier = Modifier.size(32.dp) // Fixed icon size
+                    modifier = Modifier.size(32.dp), // Fixed icon size
+                    tint = Color.White
                 )
             }
         }
@@ -620,8 +621,8 @@ fun EventCard(
                 onClick = { onAddToCalendar(event) },
                 modifier = Modifier.align(Alignment.End),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                    contentColor = Color.White
                 )
             ) {
                 Icon(

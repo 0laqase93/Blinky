@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -194,7 +196,11 @@ fun SettingsScreen() {
                     Spacer(modifier = Modifier.width(16.dp))
                     Switch(
                         checked = followSystem,
-                        onCheckedChange = { themeManager.setFollowSystem(it) }
+                        onCheckedChange = { themeManager.setFollowSystem(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            checkedTrackColor = dam.tfg.blinky.ui.theme.GoogleBlue.copy(alpha = 0.5f)
+                        )
                     )
                 }
 
@@ -237,7 +243,12 @@ fun SettingsScreen() {
                     Switch(
                         checked = isDarkMode,
                         onCheckedChange = { themeManager.setDarkMode(it) },
-                        enabled = !followSystem
+                        enabled = !followSystem,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            checkedTrackColor = dam.tfg.blinky.ui.theme.GoogleBlue.copy(alpha = 0.5f),
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                 }
             }
@@ -297,7 +308,10 @@ fun SettingsScreen() {
                         onClick = { 
                             newIpAddress = serverIp
                             showEditIpDialog = true 
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        )
                     ) {
                         Text("Editar")
                     }
@@ -360,7 +374,10 @@ fun SettingsScreen() {
                     Box {
                         Button(
                             onClick = { isPersonalityMenuExpanded = true },
-                            enabled = !isLoadingPersonalities
+                            enabled = !isLoadingPersonalities,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                            )
                         ) {
                             if (isLoadingPersonalities) {
                                 Row(
@@ -446,7 +463,12 @@ fun SettingsScreen() {
                         onCheckedChange = { 
                             isDeafMode = it
                             AppConfig.setDeafMode(it)
-                        }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            checkedTrackColor = dam.tfg.blinky.ui.theme.GoogleBlue.copy(alpha = 0.5f),
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline
+                        )
                     )
                 }
             }
@@ -510,7 +532,10 @@ fun SettingsScreen() {
                                 permissionCheckTrigger++
                             }
                         },
-                        enabled = !hasMicPermission
+                        enabled = !hasMicPermission,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        )
                     ) {
                         Text(if (hasMicPermission) "Concedido" else "Conceder")
                     }
@@ -559,7 +584,10 @@ fun SettingsScreen() {
                                 permissionCheckTrigger++
                             }
                         },
-                        enabled = !hasNotificationPermission
+                        enabled = !hasNotificationPermission,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        )
                     ) {
                         Text(if (hasNotificationPermission) "Concedido" else "Conceder")
                     }
@@ -601,14 +629,20 @@ fun SettingsScreen() {
                             showEditIpDialog = false
                         }
                     },
-                    enabled = newIpAddress.isNotBlank()
+                    enabled = newIpAddress.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 ) {
                     Text("Guardar")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showEditIpDialog = false }
+                    onClick = { showEditIpDialog = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 ) {
                     Text("Cancelar")
                 }

@@ -176,7 +176,8 @@ fun InitialScreen(
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Escribir mensaje",
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
                 )
             }
 
@@ -186,12 +187,14 @@ fun InitialScreen(
                 modifier = Modifier
                     .padding(top = 80.dp, end = 16.dp) // Position below the write FAB
                     .size(70.dp), // Fixed size
-                shape = RoundedCornerShape(16.dp) // Slightly rounded corners instead of circle
+                shape = RoundedCornerShape(16.dp), // Slightly rounded corners instead of circle
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,
                     contentDescription = "Micrófono",
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
                 )
             }
         }

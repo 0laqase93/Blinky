@@ -329,6 +329,9 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+            ),
             enabled = !isLoading
         ) {
             if (isLoading) {
@@ -346,7 +349,10 @@ fun RegisterScreen(
         // Back to Login Button
         TextButton(
             onClick = onBackToLogin,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = dam.tfg.blinky.ui.theme.GoogleBlue
+            )
         ) {
             Text("Volver a Iniciar Sesión")
         }
