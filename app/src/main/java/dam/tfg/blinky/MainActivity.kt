@@ -55,9 +55,11 @@ import dam.tfg.blinky.dataclass.ChatResponse
 import dam.tfg.blinky.dataclass.WrenchEmotion
 import dam.tfg.blinky.navigation.BottomNavBar
 import dam.tfg.blinky.navigation.Screen
-import dam.tfg.blinky.screens.CalendarScreen
+import dam.tfg.blinky.presentation.screens.CalendarScreen
 import dam.tfg.blinky.presentation.screens.EnhancedProfileScreen
-import dam.tfg.blinky.screens.SettingsScreen
+import dam.tfg.blinky.presentation.screens.SettingsScreen
+import dam.tfg.blinky.presentation.viewmodel.CalendarViewModel
+import dam.tfg.blinky.data.repository.EventRepositoryImpl
 import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
@@ -77,6 +79,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     // UserManager para acceder a los datos del usuario
     private lateinit var userManager: UserManager
+
+    // CalendarViewModel para la pantalla de calendario
+    private lateinit var calendarViewModel: CalendarViewModel
 
     // StateFlow para manejar el estado del texto reconocido
     private val promptStateFlow = MutableStateFlow("")
@@ -102,6 +107,13 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
         // Initialize UserManager
         userManager = UserManager.getInstance(applicationContext)
+
+        // Initialize CalendarViewModel
+        val eventRepository = EventRepositoryImpl(
+            RetrofitClient.eventApi,
+            userManager
+        )
+        calendarViewModel = CalendarViewModel(eventRepository)
 
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)
@@ -168,7 +180,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                             )
                         }
                         composable(Screen.Calendar.route) {
-                            CalendarScreen()
+                            CalendarScreen(viewModel = calendarViewModel)
                         }
                         composable(Screen.Settings.route) {
                             SettingsScreen()

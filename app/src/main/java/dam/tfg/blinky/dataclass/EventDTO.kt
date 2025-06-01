@@ -1,6 +1,6 @@
 package dam.tfg.blinky.dataclass
 
-import java.time.LocalDateTime
+import org.threeten.bp.LocalDateTime
 
 /**
  * Data class for event creation request and response.
@@ -18,9 +18,9 @@ data class EventDTO(
 
     val title: String,
 
-    val startTime: LocalDateTime,
+    val startTime: LocalDateTime?,
 
-    val endTime: LocalDateTime,
+    val endTime: LocalDateTime?,
 
     val location: String? = null,
 
