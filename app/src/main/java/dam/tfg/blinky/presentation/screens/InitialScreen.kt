@@ -171,7 +171,8 @@ fun InitialScreen(
                 modifier = Modifier
                     .padding(top = 0.dp, end = 16.dp)
                     .size(70.dp), // Fixed size
-                shape = RoundedCornerShape(16.dp) // Slightly rounded corners instead of circle
+                shape = RoundedCornerShape(16.dp), // Slightly rounded corners instead of circle
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlueLight
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
@@ -188,7 +189,7 @@ fun InitialScreen(
                     .padding(top = 80.dp, end = 16.dp) // Position below the write FAB
                     .size(70.dp), // Fixed size
                 shape = RoundedCornerShape(16.dp), // Slightly rounded corners instead of circle
-                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlueDark
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,

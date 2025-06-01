@@ -379,7 +379,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 16.dp, end = 32.dp)
                     .size(70.dp), // Fixed size
-                shape = RoundedCornerShape(16.dp) // Consistent shape with other FABs
+                shape = RoundedCornerShape(16.dp), // Consistent shape with other FABs
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlueLight
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,

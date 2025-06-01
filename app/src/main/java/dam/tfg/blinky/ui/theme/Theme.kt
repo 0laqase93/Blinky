@@ -11,29 +11,54 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import dam.tfg.blinky.utils.ThemeManager
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = GoogleBlueLight,
+    secondary = GoogleBlue,
+    tertiary = LightOrange,
+
+    // Background and surface colors
+    background = DarkBackground,
+    surface = DarkSurface,
+    surfaceVariant = DarkSurfaceVariant,
+
+    // On colors (text and icons)
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.Black,
+    onBackground = DarkOnSurface,
+    onSurface = DarkOnSurface,
+    onSurfaceVariant = DarkOnSurface.copy(alpha = 0.8f),
+
+    // Other colors
+    error = Color(0xFFCF6679),
+    outline = Color(0xFF9AA0A6)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = GoogleBlue,
+    secondary = GoogleBlueDark,
+    tertiary = LightOrange,
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    // Background and surface colors
+    background = LightBackground,
+    surface = LightSurface,
+    surfaceVariant = LightSurfaceVariant,
+
+    // On colors (text and icons)
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onBackground = LightOnSurface,
+    onSurface = LightOnSurface,
+    onSurfaceVariant = LightOnSurface.copy(alpha = 0.8f),
+
+    // Other colors
+    error = Color(0xFFB00020),
+    outline = Color(0xFF6F7275)
 )
 
 @Composable
