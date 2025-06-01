@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dam.tfg.blinky.LoginActivity
+import dam.tfg.blinky.presentation.activities.LoginActivity
 import dam.tfg.blinky.R
 import dam.tfg.blinky.presentation.viewmodel.UserViewModel
 import kotlinx.coroutines.flow.collectLatest
