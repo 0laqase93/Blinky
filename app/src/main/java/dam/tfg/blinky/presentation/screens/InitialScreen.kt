@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dam.tfg.blinky.presentation.activities.MainActivity
 import dam.tfg.blinky.R
+import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.dataclass.WrenchEmotion
 
 @Composable
@@ -53,6 +54,12 @@ fun InitialScreen(
     // Estado para el campo de texto y el diálogo
     val textInputState = remember { mutableStateOf("") }
     val showTextDialog = remember { mutableStateOf(false) }
+
+    // Initialize AppConfig
+    AppConfig.initialize(context)
+
+    // Get deaf mode preference
+    val isDeafMode = remember { mutableStateOf(AppConfig.getDeafMode()) }
 
     // Focus requester para el campo de texto
     val textFieldFocusRequester = remember { FocusRequester() }
@@ -122,28 +129,31 @@ fun InitialScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Sección para el texto reconocido
-        Text(
-            text = "Texto reconocido:",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = promptState.value,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        // Only show text sections if deaf mode is enabled
+        if (isDeafMode.value) {
+            // Sección para el texto reconocido
+            Text(
+                text = "Texto reconocido:",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = promptState.value,
+                style = MaterialTheme.typography.bodyMedium
+            )
 
-        // Sección para la respuesta de la API
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Respuesta de Ollama:",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = responseState.value,
-            style = MaterialTheme.typography.bodyMedium
-        )
+            // Sección para la respuesta de la API
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Respuesta de Ollama:",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = responseState.value,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
 
         // Botones FAB para escribir y hablar
         Spacer(modifier = Modifier.weight(1f))

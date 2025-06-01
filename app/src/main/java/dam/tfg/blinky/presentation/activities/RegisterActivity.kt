@@ -2,6 +2,8 @@ package dam.tfg.blinky.presentation.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -110,8 +112,10 @@ class RegisterActivity : ComponentActivity() {
                                 password = user.password ?: ""
                             )
 
-                            // Navigate to MainActivity
-                            navigateToMainActivity()
+                            // Add a delay to appreciate the HAPPY emotion before navigating
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                navigateToMainActivity()
+                            }, 500) // 0.5 seconds delay
                         }
                     }
                 } else {

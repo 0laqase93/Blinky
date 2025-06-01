@@ -1,5 +1,12 @@
 package dam.tfg.blinky.presentation.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -16,11 +23,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import android.util.Log
+import dam.tfg.blinky.R
+import dam.tfg.blinky.dataclass.WrenchEmotion
 
 @Composable
 fun RegisterScreen(
@@ -32,6 +44,9 @@ fun RegisterScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+
+    // State for avatar emotion
+    var emotion by remember { mutableStateOf(WrenchEmotion.DEFAULT) }
 
     // Error state variables
     var emailError by remember { mutableStateOf("") }
@@ -78,8 +93,15 @@ fun RegisterScreen(
             isLoading = true
             onRegisterAttempt(email, username, password, { newLoadingState ->
                 isLoading = newLoadingState
+                // If registration was successful (loading stopped and no errors)
+                if (!newLoadingState && emailError.isEmpty() && usernameError.isEmpty() && passwordError.isEmpty() && generalError.isEmpty()) {
+                    // Change emotion to HAPPY
+                    emotion = WrenchEmotion.HAPPY
+                }
             }, { errorMessage ->
                 setErrorMessage(errorMessage)
+                // Set emotion to ERROR if there was an error
+                emotion = WrenchEmotion.ERROR
             })
         } else {
             // Set error messages based on empty fields
@@ -101,6 +123,8 @@ fun RegisterScreen(
                     Log.e("Blinky", passwordError)
                 }
             }
+            // Set emotion to ERROR if there was an error
+            emotion = WrenchEmotion.ERROR
         }
     }
 
@@ -121,13 +145,63 @@ fun RegisterScreen(
         // Add top padding to push content down when keyboard is not visible
         Spacer(modifier = Modifier.height(48.dp))
 
-        // App Logo and Title
-        Icon(
-            imageVector = Icons.Default.AccountCircle,
-            contentDescription = "Blinky Logo",
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        // Define custom font for the avatar eyes
+        val avatarFont = FontFamily(Font(R.font.vt323regular))
+
+        // Avatar eyes
+        Box(
+            modifier = Modifier
+                .size(120.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left eye with animation
+                AnimatedContent(
+                    targetState = emotion.leftEye,
+                    transitionSpec = {
+                        // Define animation for transition
+                        (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
+                            .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "LeftEyeAnimation"
+                ) { targetEye ->
+                    Text(
+                        text = targetEye,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 120.sp,
+                            fontFamily = avatarFont
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                // Space between eyes
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Right eye with animation
+                AnimatedContent(
+                    targetState = emotion.rightEye,
+                    transitionSpec = {
+                        // Define animation for transition
+                        (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
+                            .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
+                    },
+                    label = "RightEyeAnimation"
+                ) { targetEye ->
+                    Text(
+                        text = targetEye,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = 120.sp,
+                            fontFamily = avatarFont
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 

@@ -106,28 +106,16 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddEventDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(70.dp), // Fixed size
-                shape = RoundedCornerShape(16.dp) // Consistent shape with other FABs
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Añadir evento",
-                    modifier = Modifier.size(32.dp) // Fixed icon size
-                )
-            }
-        }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+            ) {
             // Calendar header with month and year
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -381,6 +369,23 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                         }
                     }
                 }
+            }
+        }
+
+            // FAB positioned lower and more to the left
+            FloatingActionButton(
+                onClick = { showAddEventDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 16.dp, end = 32.dp)
+                    .size(70.dp), // Fixed size
+                shape = RoundedCornerShape(16.dp) // Consistent shape with other FABs
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Añadir evento",
+                    modifier = Modifier.size(32.dp) // Fixed icon size
+                )
             }
         }
     }

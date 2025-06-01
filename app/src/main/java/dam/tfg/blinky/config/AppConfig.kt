@@ -16,6 +16,8 @@ object AppConfig {
     private const val DEFAULT_AI_PERSONALITY = "Motivadora"
     private const val KEY_AI_PERSONALITY_ID = "ai_personality_id"
     private const val DEFAULT_AI_PERSONALITY_ID = -1L
+    private const val KEY_DEAF_MODE = "deaf_mode"
+    private const val DEFAULT_DEAF_MODE = false
 
     private lateinit var prefs: SharedPreferences
 
@@ -101,5 +103,21 @@ object AppConfig {
             .putString(KEY_AI_PERSONALITY, personality)
             .putLong(KEY_AI_PERSONALITY_ID, personalityId)
             .apply()
+    }
+
+    /**
+     * Get the deaf mode setting.
+     * @return The deaf mode state from SharedPreferences or the default value.
+     */
+    fun getDeafMode(): Boolean {
+        return prefs.getBoolean(KEY_DEAF_MODE, DEFAULT_DEAF_MODE)
+    }
+
+    /**
+     * Set the deaf mode setting.
+     * @param enabled The new deaf mode state.
+     */
+    fun setDeafMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DEAF_MODE, enabled).apply()
     }
 }

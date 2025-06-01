@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
@@ -33,6 +37,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.dataclass.PersonalityResponseDTO
 import dam.tfg.blinky.presentation.viewmodel.PersonalityViewModel
+import dam.tfg.blinky.utils.PermissionsUtils
 import dam.tfg.blinky.utils.ThemeManager
 
 @Composable
@@ -65,6 +71,23 @@ fun SettingsScreen() {
     var showEditIpDialog by remember { mutableStateOf(false) }
     var newIpAddress by remember { mutableStateOf("") }
 
+    // State for permissions
+    var hasMicPermission by remember { mutableStateOf(PermissionsUtils.hasMicrophonePermission(context)) }
+    var hasNotificationPermission by remember { mutableStateOf(PermissionsUtils.hasNotificationPermission(context)) }
+
+    // State to trigger permission check
+    var permissionCheckTrigger by remember { mutableStateOf(0) }
+
+    // Cast context to Activity for permission requests
+    // Force cast to ComponentActivity since we know the context is from MainActivity
+    val activity = context as androidx.activity.ComponentActivity
+
+    // Update permission states when the screen is displayed or when permissionCheckTrigger changes
+    LaunchedEffect(permissionCheckTrigger) {
+        hasMicPermission = PermissionsUtils.hasMicrophonePermission(context)
+        hasNotificationPermission = PermissionsUtils.hasNotificationPermission(context)
+    }
+
     // Initialize PersonalityViewModel
     val personalityViewModel = viewModel<PersonalityViewModel>(
         factory = PersonalityViewModel.Factory()
@@ -78,6 +101,9 @@ fun SettingsScreen() {
     // State for AI personality
     var aiPersonality by remember { mutableStateOf(AppConfig.getAIPersonality()) }
     var isPersonalityMenuExpanded by remember { mutableStateOf(false) }
+
+    // State for deaf mode
+    var isDeafMode by remember { mutableStateOf(AppConfig.getDeafMode()) }
 
     // Fallback list of personalities if API fails
     val fallbackPersonalities = listOf("Normal", "Amigable", "Profesional", "Divertido", "Sarcástico")
@@ -93,9 +119,13 @@ fun SettingsScreen() {
         )
     }
 
+    // Create a scroll state that can be used to programmatically scroll
+    val scrollState = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -373,6 +403,165 @@ fun SettingsScreen() {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Deaf mode switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SmartToy,
+                            contentDescription = "Deaf Mode",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Text(
+                                text = "Modo sordo",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Mostrar texto reconocido y respuesta solo cuando está activado",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Switch(
+                        checked = isDeafMode,
+                        onCheckedChange = { 
+                            isDeafMode = it
+                            AppConfig.setDeafMode(it)
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Permissions settings card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Permisos",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Microphone permission
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Microphone Permission",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Text(
+                                text = "Micrófono",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (hasMicPermission) "Permiso concedido" else "Permiso no concedido",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { 
+                            if (!hasMicPermission) {
+                                PermissionsUtils.requestMicrophonePermission(activity)
+                                // Trigger permission check after request
+                                permissionCheckTrigger++
+                            }
+                        },
+                        enabled = !hasMicPermission
+                    ) {
+                        Text(if (hasMicPermission) "Concedido" else "Conceder")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Notification permission
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notification Permission",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Text(
+                                text = "Notificaciones",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (hasNotificationPermission) "Permiso concedido" else "Permiso no concedido",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { 
+                            if (!hasNotificationPermission) {
+                                PermissionsUtils.requestNotificationPermission(activity)
+                                // Trigger permission check after request
+                                permissionCheckTrigger++
+                            }
+                        },
+                        enabled = !hasNotificationPermission
+                    ) {
+                        Text(if (hasNotificationPermission) "Concedido" else "Conceder")
                     }
                 }
             }

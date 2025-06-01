@@ -110,6 +110,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         // Initialize ThemeManager
         ThemeManager.getInstance(applicationContext)
 
+        // Initialize AppConfig
+        AppConfig.initialize(applicationContext)
+
         // Initialize UserManager
         userManager = UserManager.getInstance(applicationContext)
 
@@ -272,12 +275,21 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         // Registrar la emoción detectada
                         Log.d("Blinky", "Emoción detectada: ${detectedEmotion.description} (de ${if (chatResponse.reaction.isNotEmpty()) "reaction" else "response"})")
 
-                        // Leer la respuesta en voz alta
-                        val utteranceId = "utterance_${System.currentTimeMillis()}"
-                        val params = Bundle()
-                        params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
-                        isSpeaking = true
-                        tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+                        // Check if deaf mode is enabled
+                        val isDeafMode = AppConfig.getDeafMode()
+
+                        // Only use TextToSpeech if deaf mode is not enabled
+                        if (!isDeafMode) {
+                            // Leer la respuesta en voz alta
+                            val utteranceId = "utterance_${System.currentTimeMillis()}"
+                            val params = Bundle()
+                            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+                            isSpeaking = true
+                            tts.speak(chatResponse.response, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+                        } else {
+                            // Log that TTS is skipped due to deaf mode
+                            Log.d("Blinky", "TextToSpeech skipped due to deaf mode being enabled")
+                        }
                     }
                 } else {
                     val errorMsg = "Error en la respuesta: ${response.code()}"
