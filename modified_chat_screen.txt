@@ -1,0 +1,89 @@
+// This is a modified version of the ChatScreen composable that uses the AnimatedEyes component
+// Replace the eye animation section in MainActivity.kt with this code
+
+@Composable
+fun ChatScreen(
+    modifier: Modifier = Modifier,
+    tts: TextToSpeech,
+    onMicClick: () -> Unit
+) {
+    // Observar el estado del texto reconocido, la respuesta de la API y la emoción
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val promptFlow = (context as MainActivity).getPromptStateFlow()
+    val promptState = promptFlow.collectAsState(initial = "")
+    val responseFlow = context.getResponseStateFlow()
+    val responseState = responseFlow.collectAsState(initial = "")
+    val emotionFlow = context.getEmotionStateFlow()
+    val emotionState = emotionFlow.collectAsState(initial = WrenchEmotion.DEFAULT)
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Sección para los ojos (estilo Wrench) - ocupando la mitad de la pantalla
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f),
+            contentAlignment = Alignment.Center
+        ) {
+            // Use the AnimatedEyes component instead of the inline implementation
+            AnimatedEyes(emotion = emotionState.value)
+        }
+
+        // Botones para probar las emociones
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Probar emociones:",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            WrenchEmotion.values().forEach { emotion ->
+                EmotionButton(
+                    emotion = emotion,
+                    onClick = { context.setEmotion(emotion) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Sección para el texto reconocido
+        Text(
+            text = "Texto reconocido:",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = promptState.value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        // Sección para la respuesta de la API
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Respuesta de Ollama:",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = responseState.value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        // Botón para hablar
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onMicClick) {
+            Icon(Icons.Default.Phone, contentDescription = "Micrófono")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Hablar")
+        }
+    }
+}

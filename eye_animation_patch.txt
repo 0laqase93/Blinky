@@ -1,0 +1,117 @@
+# Patch to fix eye movement in MainActivity.kt
+
+## Changes needed:
+
+1. Add import for AnimatedEyes component:
+```kotlin
+import dam.tfg.blinky.presentation.components.AnimatedEyes
+```
+
+2. Replace the eye animation section in ChatScreen composable:
+
+FROM:
+```kotlin
+    // Estados para las posiciones de los ojos
+    val leftEyeOffset = remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val rightEyeOffset = remember { androidx.compose.runtime.mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+
+    // Efecto para animar los ojos con movimiento aleatorio
+    LaunchedEffect(key1 = Unit) {
+        while(true) {
+            // Determinar si volvemos al centro o movemos aleatoriamente
+            val returnToCenter = (0..10).random() < 2 // 20% de probabilidad de volver al centro
+
+            if (returnToCenter) {
+                // Volver al centro gradualmente
+                leftEyeOffset.value = androidx.compose.ui.geometry.Offset.Zero
+                rightEyeOffset.value = androidx.compose.ui.geometry.Offset.Zero
+            } else {
+                // Generar nuevas posiciones aleatorias dentro de un rango limitado
+                val maxOffset = 30f // Máximo desplazamiento en dp
+                leftEyeOffset.value = androidx.compose.ui.geometry.Offset(
+                    x = (-maxOffset..maxOffset).random(),
+                    y = (-maxOffset..maxOffset).random()
+                )
+                rightEyeOffset.value = androidx.compose.ui.geometry.Offset(
+                    x = (-maxOffset..maxOffset).random(),
+                    y = (-maxOffset..maxOffset).random()
+                )
+            }
+
+            // Esperar antes del siguiente movimiento (entre 0.5 y 2 segundos)
+            kotlinx.coroutines.delay((500..2000).random().toLong())
+        }
+    }
+```
+
+TO:
+```kotlin
+    // No need for state variables or LaunchedEffect as they're handled in AnimatedEyes component
+```
+
+3. Replace the eye display section:
+
+FROM:
+```kotlin
+        // Sección para los ojos (estilo Wrench) - ocupando la mitad de la pantalla
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Ojo izquierdo con offset aleatorio
+                Box(
+                    modifier = Modifier
+                        .offset(x = leftEyeOffset.value.x.dp, y = leftEyeOffset.value.y.dp)
+                ) {
+                    Text(
+                        text = emotionState.value.leftEye,
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                    )
+                }
+                // Espaciado entre los ojos
+                Spacer(modifier = Modifier.width(48.dp))
+                // Ojo derecho con offset aleatorio
+                Box(
+                    modifier = Modifier
+                        .offset(x = rightEyeOffset.value.x.dp, y = rightEyeOffset.value.y.dp)
+                ) {
+                    Text(
+                        text = emotionState.value.rightEye,
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 150.sp)
+                    )
+                }
+            }
+        }
+```
+
+TO:
+```kotlin
+        // Sección para los ojos (estilo Wrench) - ocupando la mitad de la pantalla
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.5f),
+            contentAlignment = Alignment.Center
+        ) {
+            // Use the AnimatedEyes component instead of the inline implementation
+            AnimatedEyes(emotion = emotionState.value)
+        }
+```
+
+## Explanation:
+
+The issue is that while the eye animation code exists in MainActivity.kt, it's not being used correctly. The AnimatedEyes component has been created but is not being utilized in the UI. By replacing the inline implementation with the AnimatedEyes component, we ensure that the eyes will move randomly around the screen with the effect of looking around.
+
+The AnimatedEyes component already contains all the necessary logic for random eye movement, including:
+1. State variables for the eye positions
+2. A LaunchedEffect that periodically updates these positions with random values
+3. Logic to occasionally reset the positions to the center (20% probability)
+4. Box components with offset modifiers to position the eyes based on the random values
+
+By using this component, we ensure that the eye movement functionality works as expected.
