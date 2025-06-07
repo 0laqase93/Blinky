@@ -186,13 +186,15 @@ class CalendarViewModel(
                                 onSuccess(eventResponse.eventId)
                                 loadUserEvents() // Reload events
                             } else {
-                                onError(eventResponse.message ?: "Error desconocido al crear el evento")
+                                onError("")
+                                loadUserEvents() // Reload events even on error
                             }
                         } else {
                             val errorCode = response.code()
                             val errorBody = response.errorBody()?.string() ?: "Sin detalles"
                             val errorMessage = "Error al crear el evento (código $errorCode): $errorBody"
-                            onError(errorMessage)
+                            onError("")
+                            loadUserEvents() // Reload events even on error
                             Log.e("CalendarViewModel", errorMessage)
                         }
                     }
@@ -200,14 +202,16 @@ class CalendarViewModel(
                     override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
                         _isLoading.value = false
                         val errorMessage = "Error de conexión: ${t.message ?: "Error desconocido"}"
-                        onError(errorMessage)
+                        onError("")
+                        loadUserEvents() // Reload events even on error
                         Log.e("CalendarViewModel", "Error creating event", t)
                     }
                 })
             } catch (e: Exception) {
                 _isLoading.value = false
                 val errorMessage = "Error al preparar la creación del evento: ${e.message ?: "Error desconocido"}"
-                onError(errorMessage)
+                onError("")
+                loadUserEvents() // Reload events even on error
                 Log.e("CalendarViewModel", "Error preparing to create event", e)
             }
         }
@@ -250,13 +254,15 @@ class CalendarViewModel(
                                 onSuccess()
                                 loadUserEvents() // Reload events
                             } else {
-                                onError(eventResponse.message ?: "Error desconocido al actualizar el evento")
+                                onError("")
+                                loadUserEvents() // Reload events even on error
                             }
                         } else {
                             val errorCode = response.code()
                             val errorBody = response.errorBody()?.string() ?: "Sin detalles"
                             val errorMessage = "Error al actualizar el evento (código $errorCode): $errorBody"
-                            onError(errorMessage)
+                            onError("")
+                            loadUserEvents() // Reload events even on error
                             Log.e("CalendarViewModel", errorMessage)
                         }
                     }
@@ -264,14 +270,16 @@ class CalendarViewModel(
                     override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
                         _isLoading.value = false
                         val errorMessage = "Error de conexión: ${t.message ?: "Error desconocido"}"
-                        onError(errorMessage)
+                        onError("")
+                        loadUserEvents() // Reload events even on error
                         Log.e("CalendarViewModel", "Error updating event", t)
                     }
                 })
             } catch (e: Exception) {
                 _isLoading.value = false
                 val errorMessage = "Error al preparar la actualización del evento: ${e.message ?: "Error desconocido"}"
-                onError(errorMessage)
+                onError("")
+                loadUserEvents() // Reload events even on error
                 Log.e("CalendarViewModel", "Error preparing to update event", e)
             }
         }
@@ -300,13 +308,15 @@ class CalendarViewModel(
                                 onSuccess()
                                 loadUserEvents() // Reload events
                             } else {
-                                onError(eventResponse.message ?: "Error desconocido al eliminar el evento")
+                                onError("")
+                                loadUserEvents() // Reload events even on error
                             }
                         } else {
                             val errorCode = response.code()
                             val errorBody = response.errorBody()?.string() ?: "Sin detalles"
                             val errorMessage = "Error al eliminar el evento (código $errorCode): $errorBody"
-                            onError(errorMessage)
+                            onError("")
+                            loadUserEvents() // Reload events even on error
                             Log.e("CalendarViewModel", errorMessage)
                         }
                     }
@@ -314,14 +324,16 @@ class CalendarViewModel(
                     override fun onFailure(call: Call<EventResponseDTO>, t: Throwable) {
                         _isLoading.value = false
                         val errorMessage = "Error de conexión: ${t.message ?: "Error desconocido"}"
-                        onError(errorMessage)
+                        onError("")
+                        loadUserEvents() // Reload events even on error
                         Log.e("CalendarViewModel", "Error deleting event", t)
                     }
                 })
             } catch (e: Exception) {
                 _isLoading.value = false
                 val errorMessage = "Error al preparar la eliminación del evento: ${e.message ?: "Error desconocido"}"
-                onError(errorMessage)
+                onError("")
+                loadUserEvents() // Reload events even on error
                 Log.e("CalendarViewModel", "Error preparing to delete event", e)
             }
         }

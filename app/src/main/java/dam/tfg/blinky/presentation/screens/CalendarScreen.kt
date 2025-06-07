@@ -456,6 +456,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                             errorMessage,
                             Toast.LENGTH_LONG
                         ).show()
+                        showAddEventDialog = false
                     }
                 )
             }
@@ -495,6 +496,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                             errorMessage,
                             Toast.LENGTH_LONG
                         ).show()
+                        showEditEventDialog = false
                     }
                 )
             }
@@ -528,6 +530,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                     errorMessage,
                                     Toast.LENGTH_LONG
                                 ).show()
+                                showDeleteConfirmation = false
                             }
                         )
                     }
