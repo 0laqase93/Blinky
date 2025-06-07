@@ -52,6 +52,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -97,12 +100,23 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
     var showEditEventDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
+    // Pull to refresh state
+    var refreshing by remember { mutableStateOf(false) }
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = refreshing)
+
     // Format for displaying dates
     val dateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES"))
 
     // Load events when the screen is first displayed
     LaunchedEffect(Unit) {
         viewModel.loadUserEvents()
+    }
+
+    // Reset refreshing state when loading completes
+    LaunchedEffect(isLoading) {
+        if (!isLoading) {
+            refreshing = false
+        }
     }
 
     Scaffold(
@@ -253,119 +267,138 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Loading indicator
-            if (isLoading) {
+            // SwipeRefresh for pull-to-refresh functionality
+            SwipeRefresh(
+                state = swipeRefreshState,
+                onRefresh = {
+                    refreshing = true
+                    viewModel.loadUserEvents()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                // Content inside SwipeRefresh
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    CircularProgressIndicator()
-                }
-            }
-            // Error message
-            else if (error != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = "Error",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(48.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = error ?: "Error desconocido",
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = { viewModel.loadUserEvents() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
+                    // Loading indicator
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Reintentar"
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Reintentar")
+                            CircularProgressIndicator()
                         }
                     }
-                }
-            }
-            // Event list
-            else {
-                val eventsForSelectedDate = events.filter { it.date.isEqual(selectedDate) }
+                    // Error message
+                    else if (error != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Error,
+                                    contentDescription = "Error",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(48.dp)
+                                )
 
-                if (eventsForSelectedDate.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No hay eventos para este día",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                        )
-                    }
-                } else {
-                    LazyColumn {
-                        items(eventsForSelectedDate.sortedBy { it.time }) { event ->
-                            EventCard(
-                                event = event,
-                                onDelete = {
-                                    selectedEvent = event
-                                    showDeleteConfirmation = true
-                                },
-                                onEdit = {
-                                    selectedEvent = event
-                                    showEditEventDialog = true
-                                },
-                                onAddToCalendar = { event ->
-                                    // Add to device calendar
-                                    val intent = Intent(Intent.ACTION_INSERT)
-                                        .setData(CalendarContract.Events.CONTENT_URI)
-                                        .putExtra(CalendarContract.Events.TITLE, event.title)
-                                        .putExtra(CalendarContract.Events.DESCRIPTION, event.description)
-                                        .putExtra(CalendarContract.Events.EVENT_LOCATION, event.location)
-                                        .putExtra(
-                                            CalendarContract.EXTRA_EVENT_BEGIN_TIME,
-                                            event.date.atTime(event.time).toEpochSecond(org.threeten.bp.ZoneOffset.UTC) * 1000
-                                        )
-                                        .putExtra(
-                                            CalendarContract.EXTRA_EVENT_END_TIME,
-                                            event.date.atTime(event.endTime).toEpochSecond(org.threeten.bp.ZoneOffset.UTC) * 1000
-                                        )
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                                    try {
-                                        (context as? Activity)?.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            "No se pudo abrir el calendario: ${e.message}",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        Log.e("CalendarScreen", "Error opening calendar", e)
-                                    }
+                                Text(
+                                    text = error ?: "Error desconocido",
+                                    color = MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Button(
+                                    onClick = { viewModel.loadUserEvents() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Reintentar"
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = "Reintentar")
                                 }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                    // Event list
+                    else {
+                        val eventsForSelectedDate = events.filter { it.date.isEqual(selectedDate) }
+
+                        if (eventsForSelectedDate.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No hay eventos para este día",
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(eventsForSelectedDate.sortedBy { it.time }) { event ->
+                                    EventCard(
+                                        event = event,
+                                        onDelete = {
+                                            selectedEvent = event
+                                            showDeleteConfirmation = true
+                                        },
+                                        onEdit = {
+                                            selectedEvent = event
+                                            showEditEventDialog = true
+                                        },
+                                        onAddToCalendar = { event ->
+                                            // Add to device calendar
+                                            val intent = Intent(Intent.ACTION_INSERT)
+                                                .setData(CalendarContract.Events.CONTENT_URI)
+                                                .putExtra(CalendarContract.Events.TITLE, event.title)
+                                                .putExtra(CalendarContract.Events.DESCRIPTION, event.description)
+                                                .putExtra(CalendarContract.Events.EVENT_LOCATION, event.location)
+                                                .putExtra(
+                                                    CalendarContract.EXTRA_EVENT_BEGIN_TIME,
+                                                    event.date.atTime(event.time).toEpochSecond(org.threeten.bp.ZoneOffset.UTC) * 1000
+                                                )
+                                                .putExtra(
+                                                    CalendarContract.EXTRA_EVENT_END_TIME,
+                                                    event.date.atTime(event.endTime).toEpochSecond(org.threeten.bp.ZoneOffset.UTC) * 1000
+                                                )
+
+                                            try {
+                                                (context as? Activity)?.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "No se pudo abrir el calendario: ${e.message}",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                                Log.e("CalendarScreen", "Error opening calendar", e)
+                                            }
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
                         }
                     }
                 }
