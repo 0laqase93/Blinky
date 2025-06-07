@@ -49,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -210,6 +211,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                     .background(
                                         when {
                                             isSelected -> dam.tfg.blinky.ui.theme.GoogleBlueLight
+                                            isToday && !selectedDate.isEqual(LocalDate.now()) -> dam.tfg.blinky.ui.theme.GoogleBlueTransparent
                                             isToday -> MaterialTheme.colorScheme.primaryContainer
                                             else -> Color.Transparent
                                         }
@@ -226,8 +228,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                     Text(
                                         text = date.dayOfMonth.toString(),
                                         color = when {
-                                            isSelected -> MaterialTheme.colorScheme.onPrimary
-                                            isToday -> MaterialTheme.colorScheme.onPrimaryContainer
+                                            isSelected -> MaterialTheme.colorScheme.background
+                                            isToday -> MaterialTheme.colorScheme.background
                                             isCurrentMonth -> MaterialTheme.colorScheme.onBackground
                                             else -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                         },
@@ -240,7 +242,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                                 .size(4.dp)
                                                 .background(
                                                     if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                                    else MaterialTheme.colorScheme.primary,
+                                                    else dam.tfg.blinky.ui.theme.GoogleBlue,
                                                     CircleShape
                                                 )
                                         )
@@ -704,7 +706,12 @@ fun AddEventDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Título") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -790,7 +797,12 @@ fun AddEventDialog(
                     value = location,
                     onValueChange = { location = it },
                     label = { Text("Ubicación (opcional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -800,7 +812,12 @@ fun AddEventDialog(
                     onValueChange = { description = it },
                     label = { Text("Descripción (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
+                    minLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
             }
         },
@@ -811,7 +828,8 @@ fun AddEventDialog(
                         onAddEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null)
                     }
                 },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = dam.tfg.blinky.ui.theme.GoogleBlue)
             ) {
                 Text("Añadir")
             }
@@ -905,7 +923,12 @@ fun EditEventDialog(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Título") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -991,7 +1014,12 @@ fun EditEventDialog(
                     value = location,
                     onValueChange = { location = it },
                     label = { Text("Ubicación (opcional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1001,7 +1029,12 @@ fun EditEventDialog(
                     onValueChange = { description = it },
                     label = { Text("Descripción (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
+                    minLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
             }
         },
@@ -1012,7 +1045,8 @@ fun EditEventDialog(
                         onEditEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null)
                     }
                 },
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = dam.tfg.blinky.ui.theme.GoogleBlue)
             ) {
                 Text("Guardar")
             }

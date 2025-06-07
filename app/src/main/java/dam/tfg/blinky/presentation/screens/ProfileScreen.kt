@@ -85,8 +85,8 @@ fun EnhancedProfileScreen() {
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                .background(dam.tfg.blinky.ui.theme.GoogleBlueTransparent)
+                .border(2.dp, dam.tfg.blinky.ui.theme.GoogleBlueDark, CircleShape)
                 .clickable { /* TODO: Implement image picker */ },
             contentAlignment = Alignment.Center
         ) {
@@ -96,7 +96,7 @@ fun EnhancedProfileScreen() {
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile Picture",
                     modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = Color.White
                 )
             } else {
                 // Default icon if no profile picture
@@ -104,7 +104,7 @@ fun EnhancedProfileScreen() {
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile Picture",
                     modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = Color.White
                 )
             }
         }
@@ -195,7 +195,7 @@ fun EnhancedProfileScreen() {
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                containerColor = dam.tfg.blinky.ui.theme.GoogleBlueTransparent,
                 contentColor = Color.White
             )
         ) {
@@ -219,10 +219,14 @@ fun EnhancedProfileScreen() {
         ) {
             Icon(
                 imageVector = Icons.Default.Logout,
-                contentDescription = "Logout"
+                contentDescription = "Logout",
+                tint = MaterialTheme.colorScheme.background
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Cerrar Sesión")
+            Text(
+                "Cerrar Sesión",
+                color = MaterialTheme.colorScheme.background
+            )
         }
 
         // Loading indicator
@@ -247,7 +251,12 @@ fun EnhancedProfileScreen() {
                     onValueChange = { newName = it },
                     label = { Text("Nombre") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 )
             },
             confirmButton = {
@@ -259,7 +268,7 @@ fun EnhancedProfileScreen() {
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlueTransparent,
                         contentColor = Color.White
                     )
                 ) {
@@ -270,7 +279,10 @@ fun EnhancedProfileScreen() {
                 TextButton(
                     onClick = { showEditNameDialog = false }
                 ) {
-                    Text("Cancelar")
+                    Text(
+                        "Cancelar",
+                        color = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 }
             }
         )
@@ -298,14 +310,20 @@ fun EnhancedProfileScreen() {
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Cerrar Sesión")
+                    Text(
+                        "Cerrar Sesión",
+                        color = MaterialTheme.colorScheme.background
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showLogoutConfirmation = false }
                 ) {
-                    Text("Cancelar")
+                    Text(
+                        "Cancelar",
+                        color = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 }
             }
         )
@@ -324,7 +342,7 @@ fun EnhancedProfileScreen() {
                         viewModel.requestPasswordResetEmail()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlueTransparent,
                         contentColor = Color.White
                     )
                 ) {
@@ -356,7 +374,12 @@ fun EnhancedProfileScreen() {
                         label = { Text("Contraseña actual") },
                         singleLine = true,
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        )
                     )
                 }
             },
@@ -374,7 +397,7 @@ fun EnhancedProfileScreen() {
                     },
                     enabled = currentPassword.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlueTransparent,
                         contentColor = Color.White
                     )
                 ) {
@@ -385,7 +408,10 @@ fun EnhancedProfileScreen() {
                 TextButton(
                     onClick = { showVerifyPasswordDialog = false }
                 ) {
-                    Text("Cancelar")
+                    Text(
+                        "Cancelar",
+                        color = dam.tfg.blinky.ui.theme.GoogleBlue
+                    )
                 }
             }
         )
@@ -406,7 +432,12 @@ fun EnhancedProfileScreen() {
                         label = { Text("Nueva contraseña") },
                         singleLine = true,
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                            cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+                        )
                     )
                 }
             },
@@ -420,7 +451,7 @@ fun EnhancedProfileScreen() {
                     },
                     enabled = newPassword.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlueTransparent,
                         contentColor = Color.White
                     )
                 ) {

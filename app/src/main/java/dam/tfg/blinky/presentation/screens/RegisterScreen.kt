@@ -209,7 +209,7 @@ fun RegisterScreen(
         Text(
             text = "Registro en Blinky",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
+            color = dam.tfg.blinky.ui.theme.GoogleBlue
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -242,7 +242,12 @@ fun RegisterScreen(
                 }
             ),
             isError = emailError.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+            )
         )
 
         // Email error message
@@ -276,7 +281,12 @@ fun RegisterScreen(
             isError = usernameError.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(usernameFocusRequester)
+                .focusRequester(usernameFocusRequester),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+            )
         )
 
         // Username error message
@@ -311,7 +321,12 @@ fun RegisterScreen(
             isError = passwordError.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(passwordFocusRequester)
+                .focusRequester(passwordFocusRequester),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                focusedLabelColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
+            )
         )
 
         // Password error message
