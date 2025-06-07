@@ -1053,6 +1053,8 @@ fun TimePickerDialog(
     if (showDialog) {
         var hour by remember { mutableStateOf(initialTime.hour) }
         var minute by remember { mutableStateOf(initialTime.minute) }
+        var hourText by remember { mutableStateOf(initialTime.hour.toString().padStart(2, '0')) }
+        var minuteText by remember { mutableStateOf(initialTime.minute.toString().padStart(2, '0')) }
 
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -1066,11 +1068,20 @@ fun TimePickerDialog(
                     ) {
                         // Hour picker
                         OutlinedTextField(
-                            value = hour.toString().padStart(2, '0'),
+                            value = hourText,
                             onValueChange = { value ->
-                                val newHour = value.toIntOrNull()
-                                if (newHour != null && newHour in 0..23) {
-                                    hour = newHour
+                                // Allow empty input or valid numbers
+                                if (value.isEmpty()) {
+                                    hourText = value
+                                } else {
+                                    val newHour = value.toIntOrNull()
+                                    if (newHour != null && newHour in 0..23) {
+                                        hourText = value
+                                        hour = newHour
+                                    } else if (value.length <= 2) {
+                                        // Allow typing partial numbers (e.g. single digits)
+                                        hourText = value
+                                    }
                                 }
                             },
                             modifier = Modifier.width(60.dp),
@@ -1085,11 +1096,20 @@ fun TimePickerDialog(
 
                         // Minute picker
                         OutlinedTextField(
-                            value = minute.toString().padStart(2, '0'),
+                            value = minuteText,
                             onValueChange = { value ->
-                                val newMinute = value.toIntOrNull()
-                                if (newMinute != null && newMinute in 0..59) {
-                                    minute = newMinute
+                                // Allow empty input or valid numbers
+                                if (value.isEmpty()) {
+                                    minuteText = value
+                                } else {
+                                    val newMinute = value.toIntOrNull()
+                                    if (newMinute != null && newMinute in 0..59) {
+                                        minuteText = value
+                                        minute = newMinute
+                                    } else if (value.length <= 2) {
+                                        // Allow typing partial numbers (e.g. single digits)
+                                        minuteText = value
+                                    }
                                 }
                             },
                             modifier = Modifier.width(60.dp),
@@ -1101,7 +1121,10 @@ fun TimePickerDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        onTimeSelected(LocalTime.of(hour, minute))
+                        // Ensure we have valid values before confirming
+                        val finalHour = hourText.toIntOrNull() ?: hour
+                        val finalMinute = minuteText.toIntOrNull() ?: minute
+                        onTimeSelected(LocalTime.of(finalHour, finalMinute))
                     }
                 ) {
                     Text("Aceptar")
