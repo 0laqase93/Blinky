@@ -10,4 +10,5 @@ interface UserRepository {
     suspend fun resetPassword(newPassword: String): Boolean
     suspend fun requestPasswordResetEmail(email: String): Boolean
     suspend fun logout(): Boolean
+    suspend fun validateToken(): Boolean
 }

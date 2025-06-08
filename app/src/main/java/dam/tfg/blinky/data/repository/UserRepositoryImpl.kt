@@ -1,6 +1,7 @@
 package dam.tfg.blinky.data.repository
 
 import android.content.Context
+import android.util.Log
 import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.data.model.auth.User
 import dam.tfg.blinky.dataclass.ResetPasswordDTO
@@ -83,5 +84,34 @@ class UserRepositoryImpl(private val context: Context) : UserRepository {
         // Clear any other app state as needed
 
         return@withContext true
+    }
+
+    override suspend fun validateToken(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // Check if token exists
+            if (!tokenManager.hasToken()) {
+                Log.d("UserRepository", "No token found")
+                return@withContext false
+            }
+
+            // Get user ID
+            val userId = userManager.userId.value
+            if (userId == -1L) {
+                Log.d("UserRepository", "Invalid user ID")
+                return@withContext false
+            }
+
+            // Make a request to validate the token
+            val response = RetrofitClient.eventApi.getUserEvents(userId).execute()
+
+            // Check if the request was successful
+            val isValid = response.isSuccessful
+            Log.d("UserRepository", "Token validation result: $isValid (code: ${response.code()})")
+
+            return@withContext isValid
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error validating token", e)
+            return@withContext false
+        }
     }
 }

@@ -65,10 +65,14 @@ import dam.tfg.blinky.presentation.screens.InitialScreen
 import dam.tfg.blinky.presentation.screens.SettingsScreen
 import dam.tfg.blinky.presentation.viewmodel.CalendarViewModel
 import dam.tfg.blinky.data.repository.EventRepositoryImpl
+import dam.tfg.blinky.data.repository.UserRepositoryImpl
 import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
 import dam.tfg.blinky.utils.UserManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -100,6 +104,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     // Variable para controlar si TTS está hablando actualmente
     private var isSpeaking = false
 
+    // Flag to track if we've already validated the token on startup
+    private var initialTokenValidationDone = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -115,6 +122,10 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
         // Initialize UserManager
         userManager = UserManager.getInstance(applicationContext)
+
+        // Validate token when app starts
+        validateToken()
+        initialTokenValidationDone = true
 
         // Initialize CalendarViewModel
         val eventRepository = EventRepositoryImpl(
@@ -356,11 +367,44 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
     }
 
+    // Validate token when app resumes
+    override fun onResume() {
+        super.onResume()
+
+        // Only validate token if we've already done the initial validation
+        // This prevents double validation when the app first starts
+        if (initialTokenValidationDone) {
+            Log.d("MainActivity", "Validating token on resume")
+            validateToken()
+        }
+    }
+
     // Liberar recursos en onDestroy
     override fun onDestroy() {
         isSpeaking = false
         tts.stop()
         tts.shutdown()
         super.onDestroy()
+    }
+
+    // Validate token and redirect to login if invalid
+    private fun validateToken() {
+        // Create UserRepository
+        val userRepository = UserRepositoryImpl(applicationContext)
+
+        // Launch coroutine to validate token
+        CoroutineScope(Dispatchers.Main).launch {
+            val isValid = userRepository.validateToken()
+
+            if (!isValid) {
+                Log.d("MainActivity", "Token validation failed, redirecting to login")
+                // Token is invalid, redirect to login
+                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                startActivity(intent)
+                finish() // Close MainActivity
+            } else {
+                Log.d("MainActivity", "Token validation successful")
+            }
+        }
     }
 }
