@@ -163,7 +163,45 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Week navigation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = {
+                    viewModel.setSelectedDate(selectedDate.minusWeeks(1))
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Semana anterior"
+                    )
+                }
+
+                // Format for displaying short dates (day and month)
+                val shortDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("es", "ES"))
+                val firstDayOfWeek = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                val lastDayOfWeek = selectedDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+
+                Text(
+                    text = "${firstDayOfWeek.format(shortDateFormatter)} - ${lastDayOfWeek.format(shortDateFormatter)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                IconButton(onClick = {
+                    viewModel.setSelectedDate(selectedDate.plusWeeks(1))
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Semana siguiente"
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Days of week header
             Row(
