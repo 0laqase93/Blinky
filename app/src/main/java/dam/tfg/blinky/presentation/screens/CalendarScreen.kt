@@ -128,6 +128,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues)
                     .padding(16.dp)
             ) {

@@ -76,10 +76,10 @@ class UserRepositoryImpl(private val context: Context) : UserRepository {
     }
 
     override suspend fun logout(): Boolean = withContext(Dispatchers.IO) {
-        // Clear all shared preferences
+        // Clear all shared preferences except theme preferences
         tokenManager.clearToken()
         userManager.clearUserData()
-        themeManager.clearPreferences()
+        // Removed themeManager.clearPreferences() to preserve theme settings after logout
 
         // Clear any other app state as needed
 

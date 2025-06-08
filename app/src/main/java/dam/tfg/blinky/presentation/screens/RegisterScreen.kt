@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -134,6 +135,7 @@ fun RegisterScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .imePadding() // This will push the content up when the keyboard appears
             .navigationBarsPadding() // This ensures content doesn't overlap with navigation bars
             .statusBarsPadding() // This ensures content doesn't overlap with status bar

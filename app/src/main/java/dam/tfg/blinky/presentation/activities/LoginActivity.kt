@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -70,6 +71,9 @@ class LoginActivity : ComponentActivity() {
 
         // Initialize UserManager
         userManager = UserManager.getInstance(this)
+
+        // Initialize ThemeManager
+        ThemeManager.getInstance(this)
 
         // Initialize RetrofitClient
         RetrofitClient.initialize(this)

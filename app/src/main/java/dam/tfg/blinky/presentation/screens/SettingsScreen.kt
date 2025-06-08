@@ -1,6 +1,7 @@
 package dam.tfg.blinky.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -128,6 +129,7 @@ fun SettingsScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.Top,
@@ -197,7 +199,11 @@ fun SettingsScreen() {
                     Spacer(modifier = Modifier.width(16.dp))
                     Switch(
                         checked = followSystem,
-                        onCheckedChange = { themeManager.setFollowSystem(it) },
+                        onCheckedChange = { 
+                            themeManager.setFollowSystem(it)
+                            // Recreate the activity to apply theme changes immediately
+                            (context as? androidx.activity.ComponentActivity)?.recreate()
+                        },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = dam.tfg.blinky.ui.theme.GoogleBlue,
                             checkedTrackColor = dam.tfg.blinky.ui.theme.GoogleBlue.copy(alpha = 0.5f)
@@ -243,7 +249,13 @@ fun SettingsScreen() {
                     Spacer(modifier = Modifier.width(16.dp))
                     Switch(
                         checked = isDarkMode,
-                        onCheckedChange = { themeManager.setDarkMode(it) },
+                        onCheckedChange = { 
+                            themeManager.setDarkMode(it)
+                            // Recreate the activity to apply theme changes immediately
+                            if (!followSystem) {
+                                (context as? androidx.activity.ComponentActivity)?.recreate()
+                            }
+                        },
                         enabled = !followSystem,
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = dam.tfg.blinky.ui.theme.GoogleBlue,

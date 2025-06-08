@@ -28,17 +28,31 @@ class ThemeManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
     // State objects that will be observed in the UI
-    private val _isDarkMode = mutableStateOf(prefs.getBoolean(KEY_DARK_MODE, false))
+    private val _isDarkMode = mutableStateOf(loadDarkModePreference())
     val isDarkMode: State<Boolean> = _isDarkMode
 
-    private val _followSystem = mutableStateOf(prefs.getBoolean(KEY_FOLLOW_SYSTEM, true))
+    private val _followSystem = mutableStateOf(loadFollowSystemPreference())
     val followSystem: State<Boolean> = _followSystem
+
+    /**
+     * Load dark mode preference from SharedPreferences
+     */
+    private fun loadDarkModePreference(): Boolean {
+        return prefs.getBoolean(KEY_DARK_MODE, false)
+    }
+
+    /**
+     * Load follow system preference from SharedPreferences
+     */
+    private fun loadFollowSystemPreference(): Boolean {
+        return prefs.getBoolean(KEY_FOLLOW_SYSTEM, true)
+    }
 
     /**
      * Set dark mode preference
      */
     fun setDarkMode(isDark: Boolean) {
-        prefs.edit().putBoolean(KEY_DARK_MODE, isDark).apply()
+        prefs.edit().putBoolean(KEY_DARK_MODE, isDark).commit()
         _isDarkMode.value = isDark
     }
 
@@ -46,7 +60,7 @@ class ThemeManager(context: Context) {
      * Set whether to follow system theme
      */
     fun setFollowSystem(follow: Boolean) {
-        prefs.edit().putBoolean(KEY_FOLLOW_SYSTEM, follow).apply()
+        prefs.edit().putBoolean(KEY_FOLLOW_SYSTEM, follow).commit()
         _followSystem.value = follow
     }
 
@@ -68,7 +82,7 @@ class ThemeManager(context: Context) {
      * Clear all theme preferences and reset to defaults
      */
     fun clearPreferences() {
-        prefs.edit().clear().apply()
+        prefs.edit().clear().commit()
         _isDarkMode.value = false
         _followSystem.value = true
     }

@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,6 +39,7 @@ import dam.tfg.blinky.dataclass.RegisterDTO
 import dam.tfg.blinky.presentation.screens.RegisterScreen
 import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.presentation.activities.MainActivity
+import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
 import dam.tfg.blinky.utils.UserManager
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -59,6 +61,9 @@ class RegisterActivity : ComponentActivity() {
 
         // Initialize UserManager
         userManager = UserManager.getInstance(this)
+
+        // Initialize ThemeManager
+        ThemeManager.getInstance(this)
 
         // Initialize RetrofitClient
         RetrofitClient.initialize(this)
