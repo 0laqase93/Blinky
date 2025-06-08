@@ -44,10 +44,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -484,19 +488,9 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     description = description,
                     location = location,
                     onSuccess = { eventId ->
-                        Toast.makeText(
-                            context,
-                            "Evento creado correctamente",
-                            Toast.LENGTH_SHORT
-                        ).show()
                         showAddEventDialog = false
                     },
                     onError = { errorMessage ->
-                        Toast.makeText(
-                            context,
-                            errorMessage,
-                            Toast.LENGTH_LONG
-                        ).show()
                         showAddEventDialog = false
                     }
                 )
@@ -524,19 +518,9 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     description = description,
                     location = location,
                     onSuccess = {
-                        Toast.makeText(
-                            context,
-                            "Evento actualizado correctamente",
-                            Toast.LENGTH_SHORT
-                        ).show()
                         showEditEventDialog = false
                     },
                     onError = { errorMessage ->
-                        Toast.makeText(
-                            context,
-                            errorMessage,
-                            Toast.LENGTH_LONG
-                        ).show()
                         showEditEventDialog = false
                     }
                 )
@@ -558,19 +542,9 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                         viewModel.deleteEvent(
                             eventId = eventId,
                             onSuccess = {
-                                Toast.makeText(
-                                    context,
-                                    "Evento eliminado correctamente",
-                                    Toast.LENGTH_SHORT
-                                ).show()
                                 showDeleteConfirmation = false
                             },
                             onError = { errorMessage ->
-                                Toast.makeText(
-                                    context,
-                                    errorMessage,
-                                    Toast.LENGTH_LONG
-                                ).show()
                                 showDeleteConfirmation = false
                             }
                         )
@@ -731,6 +705,19 @@ fun AddEventDialog(
     var location by remember { mutableStateOf("") }
     var notificationEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf(LocalTime.of(0, 15)) } // Default 15 minutes before
+
+    // Predefined notification time options
+    val notificationOptions = listOf(
+        "5 minutos antes" to LocalTime.of(0, 5),
+        "10 minutos antes" to LocalTime.of(0, 10),
+        "15 minutos antes" to LocalTime.of(0, 15),
+        "30 minutos antes" to LocalTime.of(0, 30),
+        "1 hora antes" to LocalTime.of(1, 0),
+        "2 horas antes" to LocalTime.of(2, 0),
+        "1 día antes" to LocalTime.of(23, 59),
+        "Personalizado" to null
+    )
+
     var showTimePickerStart by remember { mutableStateOf(false) }
     var showTimePickerEnd by remember { mutableStateOf(false) }
     var showTimePickerNotification by remember { mutableStateOf(false) }
@@ -797,36 +784,25 @@ fun AddEventDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Notificación: ")
-                        if (notificationEnabled) {
-                            Text(
-                                text = "${notificationTime.format(DateTimeFormatter.ofPattern("HH:mm"))} antes",
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Text(
-                                text = "Desactivada",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                        NotificationTimeSelector(
+                            notificationEnabled = notificationEnabled,
+                            notificationTime = notificationTime,
+                            notificationOptions = notificationOptions,
+                            onNotificationTimeSelected = { newTime ->
+                                notificationTime = newTime
+                            },
+                            onShowTimePicker = {
+                                showTimePickerNotification = true
+                            }
+                        )
                     }
 
-                    Row {
-                        if (notificationEnabled) {
-                            IconButton(onClick = { showTimePickerNotification = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.AccessTime,
-                                    contentDescription = "Configurar tiempo de notificación"
-                                )
-                            }
-                        }
-
-                        IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
-                                tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                    IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
+                            tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
                     }
                 }
 
@@ -905,11 +881,7 @@ fun AddEventDialog(
                 if (newTime.isAfter(time)) {
                     endTime = newTime
                 } else {
-                    Toast.makeText(
-                        context,
-                        "La hora de fin debe ser posterior a la hora de inicio",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    // Toast removed as per requirement
                 }
                 showTimePickerEnd = false
             },
@@ -948,6 +920,19 @@ fun EditEventDialog(
     var location by remember { mutableStateOf(event.location) }
     var notificationEnabled by remember { mutableStateOf(event.notificationTime != null) }
     var notificationTime by remember { mutableStateOf(event.notificationTime ?: LocalTime.of(0, 15)) } // Default 15 minutes before
+
+    // Predefined notification time options
+    val notificationOptions = listOf(
+        "5 minutos antes" to LocalTime.of(0, 5),
+        "10 minutos antes" to LocalTime.of(0, 10),
+        "15 minutos antes" to LocalTime.of(0, 15),
+        "30 minutos antes" to LocalTime.of(0, 30),
+        "1 hora antes" to LocalTime.of(1, 0),
+        "2 horas antes" to LocalTime.of(2, 0),
+        "1 día antes" to LocalTime.of(23, 59),
+        "Personalizado" to null
+    )
+
     var showTimePickerStart by remember { mutableStateOf(false) }
     var showTimePickerEnd by remember { mutableStateOf(false) }
     var showTimePickerNotification by remember { mutableStateOf(false) }
@@ -1014,36 +999,25 @@ fun EditEventDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Notificación: ")
-                        if (notificationEnabled) {
-                            Text(
-                                text = "${notificationTime.format(DateTimeFormatter.ofPattern("HH:mm"))} antes",
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Text(
-                                text = "Desactivada",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                        NotificationTimeSelector(
+                            notificationEnabled = notificationEnabled,
+                            notificationTime = notificationTime,
+                            notificationOptions = notificationOptions,
+                            onNotificationTimeSelected = { newTime ->
+                                notificationTime = newTime
+                            },
+                            onShowTimePicker = {
+                                showTimePickerNotification = true
+                            }
+                        )
                     }
 
-                    Row {
-                        if (notificationEnabled) {
-                            IconButton(onClick = { showTimePickerNotification = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.AccessTime,
-                                    contentDescription = "Configurar tiempo de notificación"
-                                )
-                            }
-                        }
-
-                        IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
-                                tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
+                    IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
+                            tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
                     }
                 }
 
@@ -1122,11 +1096,7 @@ fun EditEventDialog(
                 if (newTime.isAfter(time)) {
                     endTime = newTime
                 } else {
-                    Toast.makeText(
-                        context,
-                        "La hora de fin debe ser posterior a la hora de inicio",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    // Toast removed as per requirement
                 }
                 showTimePickerEnd = false
             },
@@ -1144,6 +1114,77 @@ fun EditEventDialog(
             },
             onDismiss = { showTimePickerNotification = false },
             title = "Tiempo de notificación antes del evento"
+        )
+    }
+}
+
+/**
+ * Composable for notification time selection
+ */
+@Composable
+fun NotificationTimeSelector(
+    notificationEnabled: Boolean,
+    notificationTime: LocalTime,
+    notificationOptions: List<Pair<String, LocalTime?>>,
+    onNotificationTimeSelected: (LocalTime) -> Unit,
+    onShowTimePicker: () -> Unit
+) {
+    // State for dropdown menu
+    var expanded by remember { mutableStateOf(false) }
+
+    // Find the current selected option label
+    val selectedOptionLabel = remember(notificationTime) {
+        notificationOptions.find { it.second == notificationTime }?.first ?: "Personalizado"
+    }
+
+    if (notificationEnabled) {
+        // Dropdown menu for notification time selection
+        Box {
+            OutlinedTextField(
+                value = selectedOptionLabel,
+                onValueChange = { },
+                readOnly = true,
+                modifier = Modifier.width(180.dp),
+                trailingIcon = {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = "Seleccionar tiempo de notificación"
+                        )
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTextColor = MaterialTheme.colorScheme.primary
+                )
+            )
+
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                notificationOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.first) },
+                        onClick = {
+                            if (option.second == null) {
+                                // Custom time option selected, show time picker
+                                onShowTimePicker()
+                            } else {
+                                onNotificationTimeSelected(option.second!!)
+                            }
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    } else {
+        Text(
+            text = "Desactivada",
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     }
 }

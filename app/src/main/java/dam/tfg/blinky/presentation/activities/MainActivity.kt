@@ -132,7 +132,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             RetrofitClient.eventApi,
             userManager
         )
-        calendarViewModel = CalendarViewModel(eventRepository)
+        calendarViewModel = CalendarViewModel(eventRepository, applicationContext)
 
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)

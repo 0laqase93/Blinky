@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <!-- POST_NOTIFICATIONS permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- For alarm scheduling -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:name=".BlinkyApplication"
@@ -48,6 +51,12 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Blinky">
         </activity>
+
+        <!-- Broadcast receiver for notifications -->
+        <receiver
+            android:name=".receivers.NotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>

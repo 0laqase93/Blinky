@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Mic
@@ -33,8 +34,10 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -54,9 +57,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.dataclass.PersonalityResponseDTO
+import dam.tfg.blinky.presentation.screens.NotificationTimeSelector
+import dam.tfg.blinky.presentation.screens.TimePickerDialog
 import dam.tfg.blinky.presentation.viewmodel.PersonalityViewModel
+import dam.tfg.blinky.utils.NotificationHelper
 import dam.tfg.blinky.utils.PermissionsUtils
 import dam.tfg.blinky.utils.ThemeManager
+import org.threeten.bp.LocalTime
 
 @Composable
 fun SettingsScreen() {
@@ -81,6 +88,23 @@ fun SettingsScreen() {
 
     // State to trigger permission check
     var permissionCheckTrigger by remember { mutableStateOf(0) }
+
+    // State for test notification
+    var notificationEnabled by remember { mutableStateOf(false) }
+    var notificationTime by remember { mutableStateOf(LocalTime.of(0, 15)) } // Default 15 minutes before
+    var showTimePickerNotification by remember { mutableStateOf(false) }
+
+    // Predefined notification time options
+    val notificationOptions = listOf(
+        "5 minutos antes" to LocalTime.of(0, 5),
+        "10 minutos antes" to LocalTime.of(0, 10),
+        "15 minutos antes" to LocalTime.of(0, 15),
+        "30 minutos antes" to LocalTime.of(0, 30),
+        "1 hora antes" to LocalTime.of(1, 0),
+        "2 horas antes" to LocalTime.of(2, 0),
+        "1 día antes" to LocalTime.of(23, 59),
+        "Personalizado" to null
+    )
 
     // Cast context to Activity for permission requests
     // Force cast to ComponentActivity since we know the context is from MainActivity
@@ -607,6 +631,93 @@ fun SettingsScreen() {
                         )
                     ) {
                         Text(if (hasNotificationPermission) "Concedido" else "Conceder")
+                    }
+                }
+
+                // Only show test notification button if notification permission is granted
+                if (hasNotificationPermission) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Divider()
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Notification time selector
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Tiempo de notificación: ")
+                            NotificationTimeSelector(
+                                notificationEnabled = notificationEnabled,
+                                notificationTime = notificationTime,
+                                notificationOptions = notificationOptions,
+                                onNotificationTimeSelected = { newTime: LocalTime ->
+                                    notificationTime = newTime
+                                },
+                                onShowTimePicker = {
+                                    showTimePickerNotification = true
+                                }
+                            )
+                        }
+
+                        IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
+                                tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Test notification button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Button(
+                            onClick = { 
+                                // Create NotificationHelper and send test notification
+                                val notificationHelper = NotificationHelper(context)
+                                notificationHelper.sendTestNotification(if (notificationEnabled) notificationTime else null)
+
+                                // Show toast message
+                                val message = if (notificationEnabled) {
+                                    if (notificationTime.hour == 0 && notificationTime.minute == 0) {
+                                        "Notificación de prueba enviada inmediatamente"
+                                    } else {
+                                        "Notificación de prueba programada para dentro de ${notificationTime.hour}h ${notificationTime.minute}m"
+                                    }
+                                } else {
+                                    "Notificación de prueba enviada inmediatamente"
+                                }
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Probar notificaciones")
+                        }
+                    }
+
+                    // Time picker dialog for custom notification time
+                    if (showTimePickerNotification) {
+                        TimePickerDialog(
+                            showDialog = true,
+                            initialTime = notificationTime,
+                            onTimeSelected = { newTime: LocalTime ->
+                                notificationTime = newTime
+                                showTimePickerNotification = false
+                            },
+                            onDismiss = { showTimePickerNotification = false },
+                            title = "Tiempo de espera para la notificación"
+                        )
                     }
                 }
             }

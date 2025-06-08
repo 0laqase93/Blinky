@@ -1,5 +1,6 @@
 package dam.tfg.blinky.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +10,7 @@ import dam.tfg.blinky.dataclass.EventDTO
 import dam.tfg.blinky.dataclass.EventResponseDTO
 import dam.tfg.blinky.domain.model.CalendarEvent
 import dam.tfg.blinky.domain.repository.EventRepository
+import dam.tfg.blinky.utils.NotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,8 +26,14 @@ import retrofit2.Response
  * ViewModel for calendar events
  */
 class CalendarViewModel(
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val context: Context? = null
 ) : ViewModel() {
+
+    // Notification helper for scheduling event notifications
+    private val notificationHelper by lazy {
+        context?.let { NotificationHelper(it) }
+    }
 
     // State for events
     private val _events = mutableStateListOf<CalendarEvent>()
@@ -48,6 +56,20 @@ class CalendarViewModel(
      */
     fun setSelectedDate(date: LocalDate) {
         _selectedDate.value = date
+    }
+
+    /**
+     * Schedule notification for an event
+     */
+    private fun scheduleNotification(event: CalendarEvent) {
+        notificationHelper?.scheduleNotification(event)
+    }
+
+    /**
+     * Cancel notification for an event
+     */
+    private fun cancelNotification(event: CalendarEvent) {
+        notificationHelper?.cancelNotification(event)
     }
 
     /**
@@ -96,6 +118,7 @@ class CalendarViewModel(
                                         endTime = endTime,
                                         description = eventDTO.description ?: "",
                                         location = eventDTO.location ?: ""
+                                        // notificationTime is not stored on the server, only locally
                                     )
 
                                     // Add to list
@@ -185,6 +208,18 @@ class CalendarViewModel(
                             if (eventResponse.success) {
                                 onSuccess(eventResponse.eventId)
                                 loadUserEvents() // Reload events
+
+                                // Schedule notification for the new event if it has a notification time
+                                // We need to find the event in the list after reloading
+                                viewModelScope.launch {
+                                    // Give time for loadUserEvents to complete
+                                    kotlinx.coroutines.delay(500)
+                                    _events.find { it.apiId == eventResponse.eventId }?.let { event ->
+                                        if (event.notificationTime != null) {
+                                            scheduleNotification(event)
+                                        }
+                                    }
+                                }
                             } else {
                                 onError("")
                                 loadUserEvents() // Reload events even on error
@@ -252,7 +287,24 @@ class CalendarViewModel(
                             val eventResponse = response.body()!!
                             if (eventResponse.success) {
                                 onSuccess()
+
+                                // First, find the event and cancel its notification if it exists
+                                _events.find { it.apiId == eventId }?.let { oldEvent ->
+                                    cancelNotification(oldEvent)
+                                }
+
                                 loadUserEvents() // Reload events
+
+                                // Schedule notification for the updated event if it has a notification time
+                                viewModelScope.launch {
+                                    // Give time for loadUserEvents to complete
+                                    kotlinx.coroutines.delay(500)
+                                    _events.find { it.apiId == eventId }?.let { event ->
+                                        if (event.notificationTime != null) {
+                                            scheduleNotification(event)
+                                        }
+                                    }
+                                }
                             } else {
                                 onError("")
                                 loadUserEvents() // Reload events even on error
@@ -297,6 +349,11 @@ class CalendarViewModel(
             try {
                 _isLoading.value = true
                 _error.value = null
+
+                // Find the event before deleting it to cancel its notification
+                _events.find { it.apiId == eventId }?.let { event ->
+                    cancelNotification(event)
+                }
 
                 eventRepository.deleteEvent(eventId).enqueue(object : Callback<EventResponseDTO> {
                     override fun onResponse(call: Call<EventResponseDTO>, response: Response<EventResponseDTO>) {
