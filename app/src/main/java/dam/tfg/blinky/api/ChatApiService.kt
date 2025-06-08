@@ -11,7 +11,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ChatApiService {
-    @POST("/api/llama/send_prompt")
+    @POST("/api/chat/send_prompt")
     fun sendPrompt(@Body request: ChatDTO): Call<ChatResponse>
 
     @GET("/api/user/email/{email}")

@@ -7,7 +7,7 @@ package dam.tfg.blinky.dataclass
 enum class WrenchEmotion(val leftEye: String, val rightEye: String, val description: String) {
     NEUTRAL("o", "o", "Neutral"),         // ojos rectos: indiferente
     HAPPY("^", "^", "Feliz"),             // ojos cerrados sonrientes
-    SAD("/ ", " \\", "Triste"),              // ojos caídos o llorosos
+    SAD("-", "-", "Triste"),              // ojos caídos o llorosos
     ANGRY(">", "<", "Enojado"),           // mirada intensa
     ERROR("X", "X", "Error"),             // fallo o sistema colapsado
     MEH("<", "<", "Meh"),

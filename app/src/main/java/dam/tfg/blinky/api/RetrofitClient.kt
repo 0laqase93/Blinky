@@ -72,6 +72,15 @@ object RetrofitClient {
         .addInterceptor(authInterceptor)
         .build()
 
+    val ttlApi: TTLApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(AppConfig.getServerUrl())
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(TTLApiService::class.java)
+    }
+
     val api: ChatApiService by lazy {
         Retrofit.Builder()
             .baseUrl(AppConfig.getServerUrl())

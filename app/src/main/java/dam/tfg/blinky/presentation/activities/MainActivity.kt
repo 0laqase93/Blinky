@@ -267,7 +267,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         Log.d("Blinky", "Sending prompt with personality: $personalityName (ID: $personalityId)")
         val chatDTO = ChatDTO(prompt, finalUserId, personalityId)
 
-        RetrofitClient.api.sendPrompt(chatDTO).enqueue(object : Callback<ChatResponse> {
+        RetrofitClient.ttlApi.sendPrompt(chatDTO).enqueue(object : Callback<ChatResponse> {
             override fun onResponse(call: Call<ChatResponse>, response: Response<ChatResponse>) {
                 if (response.isSuccessful) {
                     response.body()?.let { chatResponse ->
@@ -305,6 +305,22 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 } else {
                     val errorMsg = "Error en la respuesta: ${response.code()}"
                     Log.e("Blinky", errorMsg)
+
+                    // Log the full error response body
+                    try {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("Blinky", "Error response body: $errorBody")
+
+                        // Log additional response details
+                        Log.e("Blinky", "Response message: ${response.message()}")
+                        Log.e("Blinky", "Response headers: ${response.headers()}")
+                        Log.e("Blinky", "Request URL: ${call.request().url()}")
+                        Log.e("Blinky", "Request method: ${call.request().method()}")
+                        Log.e("Blinky", "Request body: ${call.request().body()}")
+                    } catch (e: Exception) {
+                        Log.e("Blinky", "Error parsing error response", e)
+                    }
+
                     Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
 
                     // Establecer emoción a ERROR para respuesta fallida
@@ -315,6 +331,27 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
                 val errorMsg = "Error de conexión: ${t.message}"
                 Log.e("Blinky", errorMsg, t)
+
+                // Log additional request details for debugging
+                Log.e("Blinky", "Failed request URL: ${call.request().url()}")
+                Log.e("Blinky", "Failed request method: ${call.request().method()}")
+
+                // Log the request body if available
+                try {
+                    val requestBody = call.request().body()
+                    Log.e("Blinky", "Failed request body: $requestBody")
+
+                    // Log the stack trace with more details
+                    Log.e("Blinky", "Exception stack trace:", t)
+
+                    // Log the cause if available
+                    t.cause?.let { cause ->
+                        Log.e("Blinky", "Caused by: ${cause.message}", cause)
+                    }
+                } catch (e: Exception) {
+                    Log.e("Blinky", "Error logging request details", e)
+                }
+
                 Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
 
                 // Establecer emoción a ERROR para conexión fallida
