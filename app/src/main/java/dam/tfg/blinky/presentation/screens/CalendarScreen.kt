@@ -211,7 +211,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                     .background(
                                         when {
                                             isSelected -> dam.tfg.blinky.ui.theme.GoogleBlueLight
-                                            isToday && !selectedDate.isEqual(LocalDate.now()) -> dam.tfg.blinky.ui.theme.GoogleBlueTransparent
+                                            isToday && !selectedDate.isEqual(LocalDate.now()) -> dam.tfg.blinky.ui.theme.GoogleBlueSoft
                                             isToday -> MaterialTheme.colorScheme.primaryContainer
                                             else -> Color.Transparent
                                         }
@@ -229,7 +229,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                                         text = date.dayOfMonth.toString(),
                                         color = when {
                                             isSelected -> MaterialTheme.colorScheme.background
-                                            isToday -> MaterialTheme.colorScheme.background
+                                            isToday -> Color.White
                                             isCurrentMonth -> MaterialTheme.colorScheme.onBackground
                                             else -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                                         },

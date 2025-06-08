@@ -14,7 +14,7 @@ val Pink40 = Color(0xFF7D5260)
 // Google blue color
 val GoogleBlue = Color(0xFF4285F4)
 val GoogleBlueTransparent = Color(0xCC4285F4)  // Same as GoogleBlue but with 80% opacity
-val GoogleBlueSoft = Color(0x334285F4)  // Very subtle blue (20% opacity)
+val GoogleBlueSoft = Color(0x44bfdbf5)  // Very subtle blue (20% opacity)
 
 // Light theme complementary colors
 val GoogleBlueLight = Color(0xFF8AB4F8)

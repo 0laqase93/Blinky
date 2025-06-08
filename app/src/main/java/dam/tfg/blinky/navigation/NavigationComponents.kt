@@ -12,7 +12,9 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
+import dam.tfg.blinky.ui.theme.GoogleBlueSoft
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,6 +61,9 @@ fun BottomNavBar(navController: NavController) {
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                 ) },
                 selected = selected,
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = GoogleBlueSoft
+                ),
                 onClick = {
                     navController.navigate(screen.route) {
                         // Pop up to the start destination of the graph to
