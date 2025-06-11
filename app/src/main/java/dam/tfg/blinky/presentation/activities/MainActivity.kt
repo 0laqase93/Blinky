@@ -603,6 +603,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             // No return here, continue to start speech recognition
         }
 
+        // Establecer emoción a QUESTION para indicar que está escuchando
+        emotionStateFlow.value = WrenchEmotion.QUESTION
+
         // Iniciar reconocimiento de voz (siempre, incluso después de detener TTS)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)

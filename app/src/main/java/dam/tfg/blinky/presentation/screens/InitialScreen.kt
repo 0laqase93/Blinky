@@ -282,7 +282,11 @@ fun InitialScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .clickable { showTextDialog.value = false },
+                .clickable { 
+                    showTextDialog.value = false
+                    // Restablecer emoción a NEUTRAL cuando se cierra el diálogo al hacer clic fuera
+                    (context as MainActivity).setEmotion(WrenchEmotion.NEUTRAL)
+                },
             contentAlignment = Alignment.Center
         ) {
             // Tarjeta del diálogo que no propaga clics al fondo
@@ -318,6 +322,8 @@ fun InitialScreen(
                     // Solicitar el foco y mostrar el teclado cuando aparece el diálogo
                     LaunchedEffect(showTextDialog.value) {
                         if (showTextDialog.value) {
+                            // Establecer emoción a QUESTION para indicar que está escuchando
+                            (context as MainActivity).setEmotion(WrenchEmotion.QUESTION)
                             textFieldFocusRequester.requestFocus()
                             keyboardController?.show()
                         }
@@ -330,7 +336,11 @@ fun InitialScreen(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(
-                            onClick = { showTextDialog.value = false }
+                            onClick = { 
+                                showTextDialog.value = false
+                                // Restablecer emoción a NEUTRAL cuando se cierra el diálogo
+                                (context as MainActivity).setEmotion(WrenchEmotion.NEUTRAL)
+                            }
                         ) {
                             Text("Cancelar")
                         }
@@ -345,6 +355,9 @@ fun InitialScreen(
                                         context.createEventFromPrompt(textInputState.value)
                                         textInputState.value = ""
                                         showTextDialog.value = false
+                                        // Restablecer emoción a NEUTRAL cuando se cierra el diálogo
+                                        // La emoción cambiará según la respuesta de la API
+                                        (context as MainActivity).setEmotion(WrenchEmotion.NEUTRAL)
                                     }
                                 },
                                 enabled = textInputState.value.isNotBlank(),
@@ -367,6 +380,9 @@ fun InitialScreen(
                                             context.createEventFromPrompt(textInputState.value)
                                             textInputState.value = ""
                                             showTextDialog.value = false
+                                            // Restablecer emoción a NEUTRAL cuando se cierra el diálogo
+                                            // La emoción cambiará según la respuesta de la API
+                                            (context as MainActivity).setEmotion(WrenchEmotion.NEUTRAL)
                                         }
                                     },
                                     enabled = textInputState.value.isNotBlank(),
@@ -385,6 +401,9 @@ fun InitialScreen(
                                         context.updatePrompt(textInputState.value)
                                         textInputState.value = ""
                                         showTextDialog.value = false
+                                        // Restablecer emoción a NEUTRAL cuando se cierra el diálogo
+                                        // La emoción cambiará según la respuesta de la API
+                                        (context as MainActivity).setEmotion(WrenchEmotion.NEUTRAL)
                                     }
                                 },
                                 enabled = textInputState.value.isNotBlank()
