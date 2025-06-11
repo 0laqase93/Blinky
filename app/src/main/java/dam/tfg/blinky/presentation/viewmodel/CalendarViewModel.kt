@@ -51,6 +51,22 @@ class CalendarViewModel(
     private val _selectedDate = MutableStateFlow(LocalDate.now())
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
+    // State for tutorial shown
+    private val _tutorialShown = mutableStateOf(false)
+    val tutorialShown = _tutorialShown
+
+    // SharedPreferences key
+    private val PREFS_NAME = "BlinkyPrefs"
+    private val TUTORIAL_SHOWN_KEY = "calendar_tutorial_shown"
+
+    init {
+        // Check if tutorial has been shown before
+        context?.let { ctx ->
+            val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            _tutorialShown.value = prefs.getBoolean(TUTORIAL_SHOWN_KEY, false)
+        }
+    }
+
     /**
      * Set the selected date
      */
@@ -334,6 +350,17 @@ class CalendarViewModel(
                 loadUserEvents() // Reload events even on error
                 Log.e("CalendarViewModel", "Error preparing to update event", e)
             }
+        }
+    }
+
+    /**
+     * Mark the tutorial as shown
+     */
+    fun markTutorialAsShown() {
+        _tutorialShown.value = true
+        context?.let { ctx ->
+            val prefs = ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().putBoolean(TUTORIAL_SHOWN_KEY, true).apply()
         }
     }
 

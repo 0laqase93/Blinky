@@ -56,6 +56,8 @@ import dam.tfg.blinky.api.RetrofitClient
 import dam.tfg.blinky.config.AppConfig
 import dam.tfg.blinky.dataclass.ChatDTO
 import dam.tfg.blinky.dataclass.ChatResponse
+import dam.tfg.blinky.dataclass.EventDTO
+import dam.tfg.blinky.dataclass.EventResponseDTO
 import dam.tfg.blinky.dataclass.WrenchEmotion
 import dam.tfg.blinky.navigation.BottomNavBar
 import dam.tfg.blinky.navigation.Screen
@@ -76,6 +78,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.threeten.bp.format.DateTimeFormatter
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -101,8 +104,14 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     // StateFlow para manejar la emoción actual
     private val emotionStateFlow = MutableStateFlow(WrenchEmotion.DEFAULT)
 
+    // StateFlow para manejar el estado del evento creado
+    private val eventStateFlow = MutableStateFlow<EventDTO?>(null)
+
     // Variable para controlar si TTS está hablando actualmente
     private var isSpeaking = false
+
+    // Variable para controlar si estamos en modo de creación de eventos
+    private var isEventCreationMode = false
 
     // Flag to track if we've already validated the token on startup
     private var initialTokenValidationDone = false
@@ -168,7 +177,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             if (result.resultCode == RESULT_OK) {
                 val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
                 spokenText?.let {
-                    updatePrompt(it)
+                    // Usar el endpoint apropiado según el modo de creación de eventos
+                    if (isEventCreationMode) {
+                        createEventFromPrompt(it)
+                    } else {
+                        updatePrompt(it)
+                    }
                 }
             } else {
                 val errorMsg = "Reconocimiento de voz cancelado"
@@ -228,6 +242,75 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     // Función para exponer el StateFlow de la emoción al Composable
     fun getEmotionStateFlow(): StateFlow<WrenchEmotion> = emotionStateFlow
+
+    // Función para exponer el StateFlow del evento al Composable
+    fun getEventStateFlow(): StateFlow<EventDTO?> = eventStateFlow
+
+    // Método para resetear el estado del evento
+    fun resetEventState() {
+        eventStateFlow.value = null
+    }
+
+    // Update an existing event
+    fun updateEvent(eventId: Long, title: String, description: String?, location: String?) {
+        // Get the current event from the state flow
+        val currentEvent = eventStateFlow.value ?: return
+
+        // Create a new event with updated fields but keeping the same dates
+        val updatedEvent = currentEvent.copy(
+            title = title,
+            description = description,
+            location = location
+        )
+
+        // Update the event state flow with the updated event
+        eventStateFlow.value = updatedEvent
+
+        // Format dates for the API
+        val dateStr = updatedEvent.startTime?.toLocalDate()?.format(DateTimeFormatter.ISO_DATE) ?: return
+        val startTimeStr = updatedEvent.startTime?.toLocalTime()?.format(DateTimeFormatter.ISO_TIME) ?: return
+        val endTimeStr = updatedEvent.endTime?.toLocalTime()?.format(DateTimeFormatter.ISO_TIME) ?: return
+
+        // Use the CalendarViewModel to update the event
+        calendarViewModel.updateEvent(
+            eventId = eventId,
+            title = title,
+            date = dateStr,
+            startTime = startTimeStr,
+            endTime = endTimeStr,
+            description = description,
+            location = location,
+            onSuccess = {
+                // Show success message
+                Toast.makeText(this@MainActivity, "Evento actualizado correctamente", Toast.LENGTH_SHORT).show()
+
+                // Set emotion to HAPPY for successful update
+                emotionStateFlow.value = WrenchEmotion.HAPPY
+            },
+            onError = { errorMessage ->
+                // Show error message
+                Toast.makeText(this@MainActivity, "Error al actualizar el evento", Toast.LENGTH_SHORT).show()
+
+                // Set emotion to ERROR for failed update
+                emotionStateFlow.value = WrenchEmotion.ERROR
+            }
+        )
+    }
+
+    // Método para establecer el modo de creación de eventos
+    fun setEventCreationMode(enabled: Boolean) {
+        isEventCreationMode = enabled
+    }
+
+    // Método para obtener el estado actual del modo de creación de eventos
+    fun getEventCreationMode(): Boolean {
+        return isEventCreationMode
+    }
+
+    // Método para obtener el CalendarViewModel
+    fun getCalendarViewModel(): CalendarViewModel {
+        return calendarViewModel
+    }
 
     // Método para actualizar la emoción actual
     fun setEmotion(emotion: WrenchEmotion) {
@@ -330,6 +413,147 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
             override fun onFailure(call: Call<ChatResponse>, t: Throwable) {
                 val errorMsg = "Error de conexión: ${t.message}"
+                Log.e("Blinky", errorMsg, t)
+
+                // Log additional request details for debugging
+                Log.e("Blinky", "Failed request URL: ${call.request().url()}")
+                Log.e("Blinky", "Failed request method: ${call.request().method()}")
+
+                // Log the request body if available
+                try {
+                    val requestBody = call.request().body()
+                    Log.e("Blinky", "Failed request body: $requestBody")
+
+                    // Log the stack trace with more details
+                    Log.e("Blinky", "Exception stack trace:", t)
+
+                    // Log the cause if available
+                    t.cause?.let { cause ->
+                        Log.e("Blinky", "Caused by: ${cause.message}", cause)
+                    }
+                } catch (e: Exception) {
+                    Log.e("Blinky", "Error logging request details", e)
+                }
+
+                Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+
+                // Establecer emoción a ERROR para conexión fallida
+                emotionStateFlow.value = WrenchEmotion.ERROR
+            }
+        })
+    }
+
+    // Crear un evento a partir del prompt
+    fun createEventFromPrompt(prompt: String) {
+        promptStateFlow.value = prompt
+        // Enviar el texto reconocido a la API para crear un evento
+        sendPromptToCreateEvent(prompt)
+    }
+
+    // Función para enviar el texto reconocido a la API para crear un evento
+    private fun sendPromptToCreateEvent(prompt: String) {
+        // Establecer emoción a NEUTRAL mientras se procesa la solicitud
+        emotionStateFlow.value = WrenchEmotion.NEUTRAL
+
+        // Reset event state
+        eventStateFlow.value = null
+
+        // Obtener el userId del UserManager
+        val userId = userManager.userId.value
+        // Si el userId no está disponible (valor -1), usar un valor alternativo
+        val finalUserId = if (userId != -1L) userId else {
+            // Fallback: usar el hashCode del email como userId (convertido a Long positivo)
+            val email = userManager.userEmail.value
+            Math.abs(email.hashCode().toLong())
+        }
+        // Get the personality ID from AppConfig
+        val personalityId = AppConfig.getAIPersonalityId()
+        val personalityName = AppConfig.getAIPersonality()
+        Log.d("Blinky", "Creating event from prompt with personality: $personalityName (ID: $personalityId)")
+        val chatDTO = ChatDTO(prompt, finalUserId, personalityId)
+
+        RetrofitClient.ttlApi.createEvent(chatDTO).enqueue(object : Callback<EventDTO> {
+            override fun onResponse(call: Call<EventDTO>, response: Response<EventDTO>) {
+                if (response.isSuccessful) {
+                    response.body()?.let { eventDTO ->
+                        // Actualizar el estado del evento
+                        eventStateFlow.value = eventDTO
+
+                        // Actualizar el estado de la respuesta para mostrar confirmación
+                        responseStateFlow.value = "Evento creado: ${eventDTO.title}"
+
+                        // Establecer emoción a HAPPY para evento creado exitosamente
+                        emotionStateFlow.value = WrenchEmotion.HAPPY
+
+                        Log.d("Blinky", "Evento creado: ${eventDTO.title}")
+
+                        // Check if deaf mode is enabled
+                        val isDeafMode = AppConfig.getDeafMode()
+
+                        // Only use TextToSpeech if deaf mode is not enabled
+                        if (!isDeafMode) {
+                            // Leer la respuesta en voz alta
+                            val utteranceId = "utterance_${System.currentTimeMillis()}"
+                            val params = Bundle()
+                            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+                            isSpeaking = true
+                            tts.speak(responseStateFlow.value, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+                        } else {
+                            // Log that TTS is skipped due to deaf mode
+                            Log.d("Blinky", "TextToSpeech skipped due to deaf mode being enabled")
+                        }
+                    }
+                } else {
+                    val errorCode = response.code()
+                    val errorMsg = "Error al crear evento: $errorCode"
+                    Log.e("Blinky", errorMsg)
+
+                    // Log the full error response body
+                    try {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("Blinky", "Error response body: $errorBody")
+
+                        // Log additional response details
+                        Log.e("Blinky", "Response message: ${response.message()}")
+                        Log.e("Blinky", "Response headers: ${response.headers()}")
+                        Log.e("Blinky", "Request URL: ${call.request().url()}")
+                        Log.e("Blinky", "Request method: ${call.request().method()}")
+                        Log.e("Blinky", "Request body: ${call.request().body()}")
+                    } catch (e: Exception) {
+                        Log.e("Blinky", "Error parsing error response", e)
+                    }
+
+                    if (errorCode == 403) {
+                        // For 403 errors, update the response with a message about event creation not being specified
+                        responseStateFlow.value = "No se ha especificado crear el evento. Por favor, activa la creación de eventos primero."
+                        // Set emotion to CONFUSED instead of ERROR
+                        emotionStateFlow.value = WrenchEmotion.CONFUSED
+
+                        // Check if deaf mode is enabled
+                        val isDeafMode = AppConfig.getDeafMode()
+
+                        // Only use TextToSpeech if deaf mode is not enabled
+                        if (!isDeafMode) {
+                            // Leer la respuesta en voz alta
+                            val utteranceId = "utterance_${System.currentTimeMillis()}"
+                            val params = Bundle()
+                            params.putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+                            isSpeaking = true
+                            tts.speak(responseStateFlow.value, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+                        } else {
+                            // Log that TTS is skipped due to deaf mode
+                            Log.d("Blinky", "TextToSpeech skipped due to deaf mode being enabled")
+                        }
+                    } else {
+                        // For other errors, show the toast and set emotion to ERROR
+                        Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        emotionStateFlow.value = WrenchEmotion.ERROR
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<EventDTO>, t: Throwable) {
+                val errorMsg = "Error de conexión al crear evento: ${t.message}"
                 Log.e("Blinky", errorMsg, t)
 
                 // Log additional request details for debugging

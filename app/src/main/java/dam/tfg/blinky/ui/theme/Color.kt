@@ -16,6 +16,9 @@ val GoogleBlue = Color(0xFF4285F4)
 val GoogleBlueTransparent = Color(0xCC4285F4)  // Same as GoogleBlue but with 80% opacity
 val GoogleBlueSoft = Color(0x44bfdbf5)  // Very subtle blue (20% opacity)
 
+// Google yellow color
+val GoogleYellow = Color(0xFFFBBC05)
+
 // Light theme complementary colors
 val GoogleBlueLight = Color(0xFF8AB4F8)
 val GoogleBlueDark = Color(0xFF1A73E8)

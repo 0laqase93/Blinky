@@ -76,6 +76,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.animateFloatAsState
 import dam.tfg.blinky.domain.model.CalendarEvent
 import dam.tfg.blinky.presentation.viewmodel.CalendarViewModel
 import org.threeten.bp.DayOfWeek
@@ -104,6 +114,12 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
     var selectedEvent by remember { mutableStateOf<CalendarEvent?>(null) }
     var showEditEventDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var newlyCreatedEventId by remember { mutableStateOf<Long?>(null) }
+
+    // Tutorial state
+    val tutorialShown by viewModel.tutorialShown
+    var showTutorial by remember { mutableStateOf(!tutorialShown) }
+    var fabBounds by remember { mutableStateOf<Rect?>(null) }
 
     // Pull to refresh state
     var refreshing by remember { mutableStateOf(false) }
@@ -121,6 +137,19 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
     LaunchedEffect(isLoading) {
         if (!isLoading) {
             refreshing = false
+        }
+    }
+
+    // Handle newly created event - show edit dialog when event is loaded
+    LaunchedEffect(newlyCreatedEventId, events) {
+        if (newlyCreatedEventId != null && !isLoading) {
+            // Find the newly created event by ID
+            events.find { it.apiId == newlyCreatedEventId }?.let { newEvent ->
+                selectedEvent = newEvent
+                showEditEventDialog = true
+                // Reset the ID after finding the event
+                newlyCreatedEventId = null
+            }
         }
     }
 
@@ -456,7 +485,11 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 16.dp, end = 32.dp)
-                    .size(70.dp), // Fixed size
+                    .size(70.dp) // Fixed size
+                    .onGloballyPositioned { coordinates ->
+                        // Store the FAB bounds for the tutorial spotlight
+                        fabBounds = coordinates.boundsInWindow()
+                    },
                 shape = RoundedCornerShape(16.dp), // Consistent shape with other FABs
                 containerColor = dam.tfg.blinky.ui.theme.GoogleBlueLight
             ) {
@@ -467,6 +500,17 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     tint = Color.White
                 )
             }
+
+            // Tutorial overlay
+            TutorialOverlay(
+                visible = showTutorial,
+                targetBounds = fabBounds,
+                message = "Añadir nuevo evento al calendario",
+                onDismiss = {
+                    showTutorial = false
+                    viewModel.markTutorialAsShown()
+                }
+            )
         }
     }
 
@@ -475,8 +519,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
         AddEventDialog(
             selectedDate = selectedDate,
             onDismiss = { showAddEventDialog = false },
-            onAddEvent = { title, time, endTime, description, location, notificationTime ->
-                val dateStr = selectedDate.format(DateTimeFormatter.ISO_DATE)
+            onAddEvent = { title, time, endTime, description, location, notificationTime, date ->
+                val dateStr = date.format(DateTimeFormatter.ISO_DATE)
                 val startTimeStr = time.format(DateTimeFormatter.ISO_TIME)
                 val endTimeStr = endTime.format(DateTimeFormatter.ISO_TIME)
 
@@ -489,6 +533,8 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     location = location,
                     onSuccess = { eventId ->
                         showAddEventDialog = false
+                        // Store the newly created event ID to find it after events are loaded
+                        newlyCreatedEventId = eventId
                     },
                     onError = { errorMessage ->
                         showAddEventDialog = false
@@ -696,15 +742,22 @@ fun EventCard(
 fun AddEventDialog(
     selectedDate: LocalDate,
     onDismiss: () -> Unit,
-    onAddEvent: (title: String, time: LocalTime, endTime: LocalTime, description: String, location: String, notificationTime: LocalTime?) -> Unit
+    onAddEvent: (title: String, time: LocalTime, endTime: LocalTime, description: String, location: String, notificationTime: LocalTime?, date: LocalDate) -> Unit,
+    initialTitle: String = "",
+    initialTime: LocalTime = LocalTime.now(),
+    initialEndTime: LocalTime = LocalTime.now().plusHours(1),
+    initialDescription: String = "",
+    initialLocation: String = ""
 ) {
-    var title by remember { mutableStateOf("") }
-    var time by remember { mutableStateOf(LocalTime.now()) }
-    var endTime by remember { mutableStateOf(LocalTime.now().plusHours(1)) }
-    var description by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(initialTitle) }
+    var time by remember { mutableStateOf(initialTime) }
+    var endTime by remember { mutableStateOf(initialEndTime) }
+    var description by remember { mutableStateOf(initialDescription) }
+    var location by remember { mutableStateOf(initialLocation) }
+    var date by remember { mutableStateOf(selectedDate) }
     var notificationEnabled by remember { mutableStateOf(false) }
     var notificationTime by remember { mutableStateOf(LocalTime.of(0, 15)) } // Default 15 minutes before
+    var showDatePicker by remember { mutableStateOf(false) }
 
     // Predefined notification time options
     val notificationOptions = listOf(
@@ -739,6 +792,24 @@ fun AddEventDialog(
                         cursorColor = dam.tfg.blinky.ui.theme.GoogleBlue
                     )
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Date row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Día: ${date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))}")
+
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Seleccionar día"
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -840,7 +911,7 @@ fun AddEventDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onAddEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null)
+                        onAddEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null, date)
                     }
                 },
                 enabled = title.isNotBlank(),
@@ -899,6 +970,18 @@ fun AddEventDialog(
             },
             onDismiss = { showTimePickerNotification = false },
             title = "Tiempo de notificación antes del evento"
+        )
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            showDialog = true,
+            initialDate = date,
+            onDateSelected = { newDate ->
+                date = newDate
+                showDatePicker = false
+            },
+            onDismiss = { showDatePicker = false }
         )
     }
 }
@@ -1190,6 +1273,165 @@ fun NotificationTimeSelector(
 }
 
 /**
+ * Tutorial overlay with spotlight effect - minimalist design with icons
+ */
+@Composable
+fun TutorialOverlay(
+    visible: Boolean,
+    targetBounds: Rect?,
+    message: String,
+    onDismiss: () -> Unit
+) {
+    if (visible && targetBounds != null) {
+        // Remember theme colors outside of the drawWithContent block
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val backgroundColor = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
+
+        // Get screen size to make calculations responsive
+        val density = LocalDensity.current
+        val screenWidth = with(density) { 
+            androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() 
+        }
+        val screenHeight = with(density) { 
+            androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() 
+        }
+
+        // Calculate a responsive circle size based on screen dimensions
+        val screenSizeFactor = (screenWidth.coerceAtMost(screenHeight) / 1080f).coerceIn(0.5f, 1.5f)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    alpha = 0.99f // Needed for the BlendMode to work properly
+                }
+                .drawWithContent {
+                    // Draw the content (this will be the darkened background)
+                    drawContent()
+
+                    // Calculate responsive circle size based on target and screen size
+                    val baseSize = targetBounds.width.coerceAtLeast(targetBounds.height) * 1.2f
+                    val adjustedSize = baseSize * screenSizeFactor
+
+                    // Draw the spotlight circle with theme-colored border
+                    // First draw the border (slightly larger circle)
+                    drawCircle(
+                        color = primaryColor,
+                        radius = adjustedSize * 0.75f,
+                        center = Offset(
+                            targetBounds.left + targetBounds.width / 2,
+                            targetBounds.top + targetBounds.height / 2
+                        )
+                    )
+
+                    // Then draw the transparent circle to create the "hole"
+                    drawCircle(
+                        color = Color.Transparent,
+                        radius = adjustedSize * 0.7f,
+                        center = Offset(
+                            targetBounds.left + targetBounds.width / 2,
+                            targetBounds.top + targetBounds.height / 2
+                        ),
+                        blendMode = BlendMode.Clear // This creates the "hole" in the overlay
+                    )
+                }
+                .background(backgroundColor)
+                .clickable(onClick = onDismiss)
+        ) {
+            // Tutorial message - minimalist design
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
+                        end = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
+                        top = 32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
+                        bottom = 32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(0.8f * screenSizeFactor.coerceIn(0.7f, 1.0f)), // Responsive width
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(12.dp), // Slightly rounded corners
+                    border = BorderStroke(2.dp, primaryColor) // Add border to the card
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Icon representing the action
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(bottom = 8.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
+                            )
+                            Spacer(modifier = Modifier.width(8.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)))
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
+                            )
+                        }
+
+                        // Shorter, more concise message
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(
+                                bottom = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
+                                start = 8.dp,
+                                end = 8.dp
+                            ),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize * screenSizeFactor.coerceIn(0.9f, 1.1f)
+                        )
+
+                        // More minimalist button with icon and animation
+                        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+                        val scale by animateFloatAsState(if (isPressed) 0.9f else 1f)
+
+                        IconButton(
+                            onClick = onDismiss,
+                            interactionSource = interactionSource,
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .clip(CircleShape)
+                                .background(primaryColor)
+                                .size(48.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cerrar tutorial",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Dialog for selecting a time
  */
 @Composable
@@ -1275,6 +1517,161 @@ fun TimePickerDialog(
                         val finalHour = hourText.toIntOrNull() ?: hour
                         val finalMinute = minuteText.toIntOrNull() ?: minute
                         onTimeSelected(LocalTime.of(finalHour, finalMinute))
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Dialog for selecting a date
+ */
+@Composable
+fun DatePickerDialog(
+    showDialog: Boolean,
+    initialDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+    title: String = "Seleccionar día"
+) {
+    if (showDialog) {
+        var day by remember { mutableStateOf(initialDate.dayOfMonth) }
+        var month by remember { mutableStateOf(initialDate.monthValue) }
+        var year by remember { mutableStateOf(initialDate.year) }
+
+        var dayText by remember { mutableStateOf(initialDate.dayOfMonth.toString().padStart(2, '0')) }
+        var monthText by remember { mutableStateOf(initialDate.monthValue.toString().padStart(2, '0')) }
+        var yearText by remember { mutableStateOf(initialDate.year.toString()) }
+
+        // Month names for dropdown
+        val monthNames = listOf(
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        )
+
+        var showMonthDropdown by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(title) },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Day picker
+                        OutlinedTextField(
+                            value = dayText,
+                            onValueChange = { value ->
+                                // Allow empty input or valid numbers
+                                if (value.isEmpty()) {
+                                    dayText = value
+                                } else {
+                                    val newDay = value.toIntOrNull()
+                                    if (newDay != null && newDay in 1..31) {
+                                        dayText = value
+                                        day = newDay
+                                    } else if (value.length <= 2) {
+                                        // Allow typing partial numbers
+                                        dayText = value
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
+                            label = { Text("Día") }
+                        )
+
+                        // Month picker (dropdown)
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = monthNames[month - 1],
+                                onValueChange = { },
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Mes") },
+                                trailingIcon = {
+                                    IconButton(onClick = { showMonthDropdown = !showMonthDropdown }) {
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = "Seleccionar mes",
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            )
+
+                            DropdownMenu(
+                                expanded = showMonthDropdown,
+                                onDismissRequest = { showMonthDropdown = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                monthNames.forEachIndexed { index, name ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            month = index + 1
+                                            monthText = (index + 1).toString().padStart(2, '0')
+                                            showMonthDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Year picker
+                        OutlinedTextField(
+                            value = yearText,
+                            onValueChange = { value ->
+                                // Allow empty input or valid numbers
+                                if (value.isEmpty()) {
+                                    yearText = value
+                                } else {
+                                    val newYear = value.toIntOrNull()
+                                    if (newYear != null && newYear in 2000..2100) {
+                                        yearText = value
+                                        year = newYear
+                                    } else if (value.length <= 4) {
+                                        // Allow typing partial numbers
+                                        yearText = value
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.titleLarge.copy(textAlign = TextAlign.Center),
+                            label = { Text("Año") }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            // Ensure we have valid values before confirming
+                            val finalDay = dayText.toIntOrNull() ?: day
+                            val finalMonth = monthText.toIntOrNull() ?: month
+                            val finalYear = yearText.toIntOrNull() ?: year
+
+                            // Validate the date
+                            val date = LocalDate.of(finalYear, finalMonth, finalDay)
+                            onDateSelected(date)
+                        } catch (e: Exception) {
+                            // If the date is invalid, use the initial date
+                            onDateSelected(initialDate)
+                        }
                     }
                 ) {
                     Text("Aceptar")
