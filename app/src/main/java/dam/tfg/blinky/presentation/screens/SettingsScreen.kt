@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,11 +75,6 @@ fun SettingsScreen() {
 
     // Initialize AppConfig
     AppConfig.initialize(context)
-
-    // State for server IP address
-    var serverIp by remember { mutableStateOf(AppConfig.getServerIp()) }
-    var showEditIpDialog by remember { mutableStateOf(false) }
-    var newIpAddress by remember { mutableStateOf("") }
 
     // State for permissions
     var hasMicPermission by remember { mutableStateOf(PermissionsUtils.hasMicrophonePermission(context)) }
@@ -287,72 +281,6 @@ fun SettingsScreen() {
                             uncheckedThumbColor = MaterialTheme.colorScheme.outline
                         )
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Server settings card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Servidor",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Server IP address
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Storage,
-                            contentDescription = "Server IP",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(
-                            modifier = Modifier.weight(1f, fill = false)
-                        ) {
-                            Text(
-                                text = "Dirección IP del servidor",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = serverIp,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Button(
-                        onClick = { 
-                            newIpAddress = serverIp
-                            showEditIpDialog = true 
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Editar")
-                    }
                 }
             }
         }
@@ -724,58 +652,4 @@ fun SettingsScreen() {
         }
     }
 
-    // Edit IP Dialog
-    if (showEditIpDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditIpDialog = false },
-            title = { Text("Editar dirección IP del servidor") },
-            text = {
-                Column {
-                    Text("Introduce la nueva dirección IP del servidor")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = newIpAddress,
-                        onValueChange = { newIpAddress = it },
-                        label = { Text("Dirección IP") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Nota: Es necesario reiniciar la aplicación para que los cambios surtan efecto.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newIpAddress.isNotBlank()) {
-                            AppConfig.setServerIp(newIpAddress)
-                            serverIp = newIpAddress
-                            showEditIpDialog = false
-                        }
-                    },
-                    enabled = newIpAddress.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = dam.tfg.blinky.ui.theme.GoogleBlue,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("Guardar")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showEditIpDialog = false },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = dam.tfg.blinky.ui.theme.GoogleBlue
-                    )
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
 }
