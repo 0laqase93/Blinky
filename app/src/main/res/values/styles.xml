@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Style for the widget eyes with vt323regular font -->
+    <style name="WidgetEyeStyle">
+        <item name="android:fontFamily">@font/vt323regular</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">60sp</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:gravity">center</item>
+    </style>
+</resources>

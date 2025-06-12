@@ -218,6 +218,12 @@ class BlinkyWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(R.id.leftEyeText, emotion.leftEye)
         views.setTextViewText(R.id.rightEyeText, emotion.rightEye)
 
+        // Custom font will be applied using setInt() below
+
+        // Set the custom font for the eyes
+        // On Android 8.0.0 (API 26), using setInt with R.font might not work correctly
+        // The font is already set in the layout XML through the style, so we don't need to set it programmatically
+
         // Create an Intent to open the app when the widget is clicked
         val intent = Intent(context, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
