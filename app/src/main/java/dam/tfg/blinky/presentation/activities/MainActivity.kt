@@ -1,6 +1,7 @@
 package dam.tfg.blinky.presentation.activities
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
@@ -131,6 +132,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
         // Initialize UserManager
         userManager = UserManager.getInstance(applicationContext)
+
+        // Check and request permissions when app starts
+        checkAndRequestPermissions()
 
         // Validate token when app starts
         validateToken()
@@ -664,6 +668,66 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                 finish() // Close MainActivity
             } else {
                 Log.d("MainActivity", "Token validation successful")
+            }
+        }
+    }
+
+    // Check and request necessary permissions
+    private fun checkAndRequestPermissions() {
+        // Import PermissionsUtils
+        val permissionsUtils = dam.tfg.blinky.utils.PermissionsUtils
+
+        // Check and request microphone permission
+        if (!permissionsUtils.hasMicrophonePermission(this)) {
+            Log.d("MainActivity", "Requesting microphone permission")
+            permissionsUtils.requestMicrophonePermission(this)
+        } else {
+            Log.d("MainActivity", "Microphone permission already granted")
+        }
+
+        // Check and request notification permission
+        if (!permissionsUtils.hasNotificationPermission(this)) {
+            Log.d("MainActivity", "Requesting notification permission")
+            permissionsUtils.requestNotificationPermission(this)
+        } else {
+            Log.d("MainActivity", "Notification permission already granted")
+        }
+    }
+
+    // Handle permission results
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            101 -> { // MICROPHONE_PERMISSION_REQUEST_CODE
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("MainActivity", "Microphone permission granted")
+                } else {
+                    Log.d("MainActivity", "Microphone permission denied")
+                    // Show a toast explaining why the permission is needed
+                    Toast.makeText(
+                        this,
+                        "El permiso de micrófono es necesario para usar el reconocimiento de voz",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            102 -> { // NOTIFICATION_PERMISSION_REQUEST_CODE
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("MainActivity", "Notification permission granted")
+                } else {
+                    Log.d("MainActivity", "Notification permission denied")
+                    // Show a toast explaining why the permission is needed
+                    Toast.makeText(
+                        this,
+                        "El permiso de notificaciones es necesario para recibir alertas de eventos",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
