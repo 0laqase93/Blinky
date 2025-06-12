@@ -631,16 +631,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    // Validate token when app resumes
+    // App resume handler
     override fun onResume() {
         super.onResume()
 
-        // Only validate token if we've already done the initial validation
-        // This prevents double validation when the app first starts
-        if (initialTokenValidationDone) {
-            Log.d("MainActivity", "Validating token on resume")
-            validateToken()
-        }
+        // Token validation on resume has been removed as per requirements
+        // The token is now only validated when the app starts
     }
 
     // Liberar recursos en onDestroy

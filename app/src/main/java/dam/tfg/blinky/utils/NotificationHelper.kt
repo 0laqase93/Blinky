@@ -193,7 +193,7 @@ class NotificationHelper(private val context: Context) {
 
     /**
      * Send a test notification with a delay
-     * @param notificationTime The time to wait before showing the notification (null for immediate)
+     * @param notificationTime The time before the event to show the notification (null for immediate)
      */
     fun sendTestNotification(notificationTime: org.threeten.bp.LocalTime?) {
         try {
@@ -219,8 +219,20 @@ class NotificationHelper(private val context: Context) {
                     Log.e(TAG, "Error sending immediate test notification", e)
                 }
             } else {
-                // Schedule the notification for the specified time
-                intent.putExtra("eventTime", "Después de ${notificationTime.hour}h ${notificationTime.minute}m")
+                // Create a test event that's scheduled for 1 hour from now
+                val now = org.threeten.bp.LocalDateTime.now()
+                val eventDateTime = now.plusHours(1)
+
+                // Calculate how many hours and minutes before the event to show the notification
+                val notificationHours = notificationTime.hour
+                val notificationMinutes = notificationTime.minute
+
+                // Calculate the actual time to show the notification
+                val notificationDateTime = eventDateTime.minusHours(notificationHours.toLong())
+                    .minusMinutes(notificationMinutes.toLong())
+
+                // Add event time to intent
+                intent.putExtra("eventTime", "${eventDateTime.toLocalTime()}")
 
                 // Create unique request code based on notification ID
                 val requestCode = testNotificationId.hashCode()
@@ -232,11 +244,6 @@ class NotificationHelper(private val context: Context) {
                     intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-
-                // Calculate notification time (current time + delay)
-                val now = org.threeten.bp.LocalDateTime.now()
-                val notificationDateTime = now.plusHours(notificationTime.hour.toLong())
-                    .plusMinutes(notificationTime.minute.toLong())
 
                 // Convert to milliseconds
                 val notificationTimeMillis = notificationDateTime
@@ -265,7 +272,7 @@ class NotificationHelper(private val context: Context) {
                         // For Android R and below, we can schedule exact alarms
                         scheduleExactAlarm(alarmManager, notificationTimeMillis, pendingIntent)
                     }
-                    Log.d(TAG, "Test notification scheduled for: $notificationDateTime")
+                    Log.d(TAG, "Test notification scheduled for: $notificationDateTime (${notificationHours}h ${notificationMinutes}m before event at $eventDateTime)")
                 } catch (e: SecurityException) {
                     Log.e(TAG, "SecurityException when scheduling test notification", e)
                     // Fall back to inexact alarm

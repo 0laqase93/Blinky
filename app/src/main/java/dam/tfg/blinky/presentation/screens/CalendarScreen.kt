@@ -116,11 +116,6 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var newlyCreatedEventId by remember { mutableStateOf<Long?>(null) }
 
-    // Tutorial state
-    val tutorialShown by viewModel.tutorialShown
-    var showTutorial by remember { mutableStateOf(!tutorialShown) }
-    var fabBounds by remember { mutableStateOf<Rect?>(null) }
-
     // Pull to refresh state
     var refreshing by remember { mutableStateOf(false) }
     val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = refreshing)
@@ -485,11 +480,7 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 16.dp, end = 32.dp)
-                    .size(70.dp) // Fixed size
-                    .onGloballyPositioned { coordinates ->
-                        // Store the FAB bounds for the tutorial spotlight
-                        fabBounds = coordinates.boundsInWindow()
-                    },
+                    .size(70.dp), // Fixed size
                 shape = RoundedCornerShape(16.dp), // Consistent shape with other FABs
                 containerColor = dam.tfg.blinky.ui.theme.GoogleBlueLight
             ) {
@@ -500,17 +491,6 @@ fun CalendarScreen(viewModel: CalendarViewModel) {
                     tint = Color.White
                 )
             }
-
-            // Tutorial overlay
-            TutorialOverlay(
-                visible = showTutorial,
-                targetBounds = fabBounds,
-                message = "Añadir nuevo evento al calendario",
-                onDismiss = {
-                    showTutorial = false
-                    viewModel.markTutorialAsShown()
-                }
-            )
         }
     }
 
@@ -755,25 +735,10 @@ fun AddEventDialog(
     var description by remember { mutableStateOf(initialDescription) }
     var location by remember { mutableStateOf(initialLocation) }
     var date by remember { mutableStateOf(selectedDate) }
-    var notificationEnabled by remember { mutableStateOf(false) }
-    var notificationTime by remember { mutableStateOf(LocalTime.of(0, 15)) } // Default 15 minutes before
     var showDatePicker by remember { mutableStateOf(false) }
-
-    // Predefined notification time options
-    val notificationOptions = listOf(
-        "5 minutos antes" to LocalTime.of(0, 5),
-        "10 minutos antes" to LocalTime.of(0, 10),
-        "15 minutos antes" to LocalTime.of(0, 15),
-        "30 minutos antes" to LocalTime.of(0, 30),
-        "1 hora antes" to LocalTime.of(1, 0),
-        "2 horas antes" to LocalTime.of(2, 0),
-        "1 día antes" to LocalTime.of(23, 59),
-        "Personalizado" to null
-    )
 
     var showTimePickerStart by remember { mutableStateOf(false) }
     var showTimePickerEnd by remember { mutableStateOf(false) }
-    var showTimePickerNotification by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     AlertDialog(
@@ -845,40 +810,6 @@ fun AddEventDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Notification row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Notificación: ")
-                        NotificationTimeSelector(
-                            notificationEnabled = notificationEnabled,
-                            notificationTime = notificationTime,
-                            notificationOptions = notificationOptions,
-                            onNotificationTimeSelected = { newTime ->
-                                notificationTime = newTime
-                            },
-                            onShowTimePicker = {
-                                showTimePickerNotification = true
-                            }
-                        )
-                    }
-
-                    IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
-                            tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
@@ -911,7 +842,7 @@ fun AddEventDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onAddEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null, date)
+                        onAddEvent(title, time, endTime, description, location, null, date)
                     }
                 },
                 enabled = title.isNotBlank(),
@@ -960,19 +891,6 @@ fun AddEventDialog(
         )
     }
 
-    if (showTimePickerNotification) {
-        TimePickerDialog(
-            showDialog = true,
-            initialTime = notificationTime,
-            onTimeSelected = { newTime ->
-                notificationTime = newTime
-                showTimePickerNotification = false
-            },
-            onDismiss = { showTimePickerNotification = false },
-            title = "Tiempo de notificación antes del evento"
-        )
-    }
-
     if (showDatePicker) {
         DatePickerDialog(
             showDialog = true,
@@ -1001,20 +919,6 @@ fun EditEventDialog(
     var endTime by remember { mutableStateOf(event.endTime) }
     var description by remember { mutableStateOf(event.description) }
     var location by remember { mutableStateOf(event.location) }
-    var notificationEnabled by remember { mutableStateOf(event.notificationTime != null) }
-    var notificationTime by remember { mutableStateOf(event.notificationTime ?: LocalTime.of(0, 15)) } // Default 15 minutes before
-
-    // Predefined notification time options
-    val notificationOptions = listOf(
-        "5 minutos antes" to LocalTime.of(0, 5),
-        "10 minutos antes" to LocalTime.of(0, 10),
-        "15 minutos antes" to LocalTime.of(0, 15),
-        "30 minutos antes" to LocalTime.of(0, 30),
-        "1 hora antes" to LocalTime.of(1, 0),
-        "2 horas antes" to LocalTime.of(2, 0),
-        "1 día antes" to LocalTime.of(23, 59),
-        "Personalizado" to null
-    )
 
     var showTimePickerStart by remember { mutableStateOf(false) }
     var showTimePickerEnd by remember { mutableStateOf(false) }
@@ -1072,40 +976,6 @@ fun EditEventDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Notification row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Notificación: ")
-                        NotificationTimeSelector(
-                            notificationEnabled = notificationEnabled,
-                            notificationTime = notificationTime,
-                            notificationOptions = notificationOptions,
-                            onNotificationTimeSelected = { newTime ->
-                                notificationTime = newTime
-                            },
-                            onShowTimePicker = {
-                                showTimePickerNotification = true
-                            }
-                        )
-                    }
-
-                    IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
-                            tint = if (notificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
@@ -1138,7 +1008,7 @@ fun EditEventDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onEditEvent(title, time, endTime, description, location, if (notificationEnabled) notificationTime else null)
+                        onEditEvent(title, time, endTime, description, location, null)
                     }
                 },
                 enabled = title.isNotBlank(),
@@ -1175,28 +1045,12 @@ fun EditEventDialog(
             showDialog = true,
             initialTime = endTime,
             onTimeSelected = { newTime ->
-                // Ensure end time is after start time
                 if (newTime.isAfter(time)) {
                     endTime = newTime
-                } else {
-                    // Toast removed as per requirement
                 }
                 showTimePickerEnd = false
             },
             onDismiss = { showTimePickerEnd = false }
-        )
-    }
-
-    if (showTimePickerNotification) {
-        TimePickerDialog(
-            showDialog = true,
-            initialTime = notificationTime,
-            onTimeSelected = { newTime ->
-                notificationTime = newTime
-                showTimePickerNotification = false
-            },
-            onDismiss = { showTimePickerNotification = false },
-            title = "Tiempo de notificación antes del evento"
         )
     }
 }
@@ -1269,165 +1123,6 @@ fun NotificationTimeSelector(
             text = "Desactivada",
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
-    }
-}
-
-/**
- * Tutorial overlay with spotlight effect - minimalist design with icons
- */
-@Composable
-fun TutorialOverlay(
-    visible: Boolean,
-    targetBounds: Rect?,
-    message: String,
-    onDismiss: () -> Unit
-) {
-    if (visible && targetBounds != null) {
-        // Remember theme colors outside of the drawWithContent block
-        val primaryColor = MaterialTheme.colorScheme.primary
-        val backgroundColor = MaterialTheme.colorScheme.background.copy(alpha = 0.7f)
-
-        // Get screen size to make calculations responsive
-        val density = LocalDensity.current
-        val screenWidth = with(density) { 
-            androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp.toPx() 
-        }
-        val screenHeight = with(density) { 
-            androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() 
-        }
-
-        // Calculate a responsive circle size based on screen dimensions
-        val screenSizeFactor = (screenWidth.coerceAtMost(screenHeight) / 1080f).coerceIn(0.5f, 1.5f)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = 0.99f // Needed for the BlendMode to work properly
-                }
-                .drawWithContent {
-                    // Draw the content (this will be the darkened background)
-                    drawContent()
-
-                    // Calculate responsive circle size based on target and screen size
-                    val baseSize = targetBounds.width.coerceAtLeast(targetBounds.height) * 1.2f
-                    val adjustedSize = baseSize * screenSizeFactor
-
-                    // Draw the spotlight circle with theme-colored border
-                    // First draw the border (slightly larger circle)
-                    drawCircle(
-                        color = primaryColor,
-                        radius = adjustedSize * 0.75f,
-                        center = Offset(
-                            targetBounds.left + targetBounds.width / 2,
-                            targetBounds.top + targetBounds.height / 2
-                        )
-                    )
-
-                    // Then draw the transparent circle to create the "hole"
-                    drawCircle(
-                        color = Color.Transparent,
-                        radius = adjustedSize * 0.7f,
-                        center = Offset(
-                            targetBounds.left + targetBounds.width / 2,
-                            targetBounds.top + targetBounds.height / 2
-                        ),
-                        blendMode = BlendMode.Clear // This creates the "hole" in the overlay
-                    )
-                }
-                .background(backgroundColor)
-                .clickable(onClick = onDismiss)
-        ) {
-            // Tutorial message - minimalist design
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
-                        end = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
-                        top = 32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
-                        bottom = 32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(0.8f * screenSizeFactor.coerceIn(0.7f, 1.0f)), // Responsive width
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    shape = RoundedCornerShape(12.dp), // Slightly rounded corners
-                    border = BorderStroke(2.dp, primaryColor) // Add border to the card
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Icon representing the action
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(bottom = 8.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = primaryColor,
-                                modifier = Modifier.size(32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
-                            )
-                            Spacer(modifier = Modifier.width(8.dp * screenSizeFactor.coerceIn(0.8f, 1.2f)))
-                            Icon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = null,
-                                tint = primaryColor,
-                                modifier = Modifier.size(32.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
-                            )
-                        }
-
-                        // Shorter, more concise message
-                        Text(
-                            text = message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(
-                                bottom = 16.dp * screenSizeFactor.coerceIn(0.8f, 1.2f),
-                                start = 8.dp,
-                                end = 8.dp
-                            ),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize * screenSizeFactor.coerceIn(0.9f, 1.1f)
-                        )
-
-                        // More minimalist button with icon and animation
-                        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-                        val isPressed by interactionSource.collectIsPressedAsState()
-                        val scale by animateFloatAsState(if (isPressed) 0.9f else 1f)
-
-                        IconButton(
-                            onClick = onDismiss,
-                            interactionSource = interactionSource,
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .clip(CircleShape)
-                                .background(primaryColor)
-                                .size(48.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
-                                .graphicsLayer {
-                                    scaleX = scale
-                                    scaleY = scale
-                                }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Cerrar tutorial",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp * screenSizeFactor.coerceIn(0.8f, 1.2f))
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

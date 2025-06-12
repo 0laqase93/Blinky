@@ -690,7 +690,7 @@ fun SettingsScreen() {
                                     if (notificationTime.hour == 0 && notificationTime.minute == 0) {
                                         "Notificación de prueba enviada inmediatamente"
                                     } else {
-                                        "Notificación de prueba programada para dentro de ${notificationTime.hour}h ${notificationTime.minute}m"
+                                        "Notificación de prueba programada para ${notificationTime.hour}h ${notificationTime.minute}m antes del evento"
                                     }
                                 } else {
                                     "Notificación de prueba enviada inmediatamente"
