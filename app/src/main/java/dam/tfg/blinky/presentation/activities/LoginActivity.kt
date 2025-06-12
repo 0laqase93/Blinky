@@ -208,7 +208,12 @@ class LoginActivity : ComponentActivity() {
 
 
     private fun navigateToMainActivity() {
+        // Create intent to start MainActivity
         val intent = Intent(this, MainActivity::class.java)
+
+        // Add flag to indicate that we need to schedule notifications for future events
+        intent.putExtra("SCHEDULE_NOTIFICATIONS", true)
+
         startActivity(intent)
         finish() // Close LoginActivity
     }

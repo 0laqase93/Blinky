@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/black"
+    android:padding="8dp"
+    android:gravity="center">
+
+    <!-- Eyes Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- Left Eye -->
+        <TextView
+            android:id="@+id/leftEyeText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="o"
+            android:textSize="60sp"
+            android:textColor="@android:color/white"
+            android:fontFamily="@font/vt323regular"
+            android:gravity="center"
+            android:textStyle="bold" />
+
+        <!-- Right Eye -->
+        <TextView
+            android:id="@+id/rightEyeText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="o"
+            android:textSize="60sp"
+            android:textColor="@android:color/white"
+            android:fontFamily="@font/vt323regular"
+            android:gravity="center"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Hint -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Toca para abrir la app"
+        android:textSize="10sp"
+        android:textColor="@android:color/darker_gray"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>

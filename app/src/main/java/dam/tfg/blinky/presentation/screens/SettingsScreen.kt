@@ -83,9 +83,14 @@ fun SettingsScreen() {
     // State to trigger permission check
     var permissionCheckTrigger by remember { mutableStateOf(0) }
 
-    // State for test notification
-    var notificationEnabled by remember { mutableStateOf(false) }
-    var notificationTime by remember { mutableStateOf(LocalTime.of(0, 15)) } // Default 15 minutes before
+    // State for notification settings from AppConfig
+    var notificationEnabled by remember { mutableStateOf(AppConfig.getNotificationEnabled()) }
+    var notificationTime by remember { 
+        mutableStateOf(LocalTime.of(
+            AppConfig.getNotificationHours(), 
+            AppConfig.getNotificationMinutes()
+        )) 
+    }
     var showTimePickerNotification by remember { mutableStateOf(false) }
 
     // Predefined notification time options
@@ -584,6 +589,8 @@ fun SettingsScreen() {
                                 notificationOptions = notificationOptions,
                                 onNotificationTimeSelected = { newTime: LocalTime ->
                                     notificationTime = newTime
+                                    // Save to AppConfig
+                                    AppConfig.setNotificationTime(newTime.hour, newTime.minute)
                                 },
                                 onShowTimePicker = {
                                     showTimePickerNotification = true
@@ -591,7 +598,11 @@ fun SettingsScreen() {
                             )
                         }
 
-                        IconButton(onClick = { notificationEnabled = !notificationEnabled }) {
+                        IconButton(onClick = { 
+                            notificationEnabled = !notificationEnabled
+                            // Save to AppConfig
+                            AppConfig.setNotificationEnabled(notificationEnabled)
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = if (notificationEnabled) "Desactivar notificación" else "Activar notificación",
@@ -630,7 +641,7 @@ fun SettingsScreen() {
                                 contentColor = Color.White
                             )
                         ) {
-                            Text("Probar notificaciones")
+                            Text("Configurar notificaciones")
                         }
                     }
 
@@ -641,6 +652,8 @@ fun SettingsScreen() {
                             initialTime = notificationTime,
                             onTimeSelected = { newTime: LocalTime ->
                                 notificationTime = newTime
+                                // Save to AppConfig
+                                AppConfig.setNotificationTime(newTime.hour, newTime.minute)
                                 showTimePickerNotification = false
                             },
                             onDismiss = { showTimePickerNotification = false },

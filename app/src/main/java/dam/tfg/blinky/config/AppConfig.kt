@@ -18,6 +18,12 @@ object AppConfig {
     private const val DEFAULT_AI_PERSONALITY_ID = -1L
     private const val KEY_DEAF_MODE = "deaf_mode"
     private const val DEFAULT_DEAF_MODE = false
+    private const val KEY_NOTIFICATION_ENABLED = "notification_enabled"
+    private const val DEFAULT_NOTIFICATION_ENABLED = true
+    private const val KEY_NOTIFICATION_HOURS = "notification_hours"
+    private const val DEFAULT_NOTIFICATION_HOURS = 1
+    private const val KEY_NOTIFICATION_MINUTES = "notification_minutes"
+    private const val DEFAULT_NOTIFICATION_MINUTES = 0
 
     private lateinit var prefs: SharedPreferences
 
@@ -119,5 +125,65 @@ object AppConfig {
      */
     fun setDeafMode(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_DEAF_MODE, enabled).apply()
+    }
+
+    /**
+     * Get whether notifications are enabled.
+     * @return Whether notifications are enabled from SharedPreferences or the default value.
+     */
+    fun getNotificationEnabled(): Boolean {
+        return prefs.getBoolean(KEY_NOTIFICATION_ENABLED, DEFAULT_NOTIFICATION_ENABLED)
+    }
+
+    /**
+     * Set whether notifications are enabled.
+     * @param enabled The new notification enabled state.
+     */
+    fun setNotificationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_NOTIFICATION_ENABLED, enabled).apply()
+    }
+
+    /**
+     * Get the notification hours setting.
+     * @return The notification hours from SharedPreferences or the default value.
+     */
+    fun getNotificationHours(): Int {
+        return prefs.getInt(KEY_NOTIFICATION_HOURS, DEFAULT_NOTIFICATION_HOURS)
+    }
+
+    /**
+     * Set the notification hours setting.
+     * @param hours The new notification hours value.
+     */
+    fun setNotificationHours(hours: Int) {
+        prefs.edit().putInt(KEY_NOTIFICATION_HOURS, hours).apply()
+    }
+
+    /**
+     * Get the notification minutes setting.
+     * @return The notification minutes from SharedPreferences or the default value.
+     */
+    fun getNotificationMinutes(): Int {
+        return prefs.getInt(KEY_NOTIFICATION_MINUTES, DEFAULT_NOTIFICATION_MINUTES)
+    }
+
+    /**
+     * Set the notification minutes setting.
+     * @param minutes The new notification minutes value.
+     */
+    fun setNotificationMinutes(minutes: Int) {
+        prefs.edit().putInt(KEY_NOTIFICATION_MINUTES, minutes).apply()
+    }
+
+    /**
+     * Set both notification hours and minutes.
+     * @param hours The new notification hours value.
+     * @param minutes The new notification minutes value.
+     */
+    fun setNotificationTime(hours: Int, minutes: Int) {
+        prefs.edit()
+            .putInt(KEY_NOTIFICATION_HOURS, hours)
+            .putInt(KEY_NOTIFICATION_MINUTES, minutes)
+            .apply()
     }
 }

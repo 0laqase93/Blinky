@@ -73,6 +73,7 @@ import dam.tfg.blinky.ui.theme.BlinkyTheme
 import dam.tfg.blinky.utils.ThemeManager
 import dam.tfg.blinky.utils.TokenManager
 import dam.tfg.blinky.utils.UserManager
+import dam.tfg.blinky.utils.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -146,6 +147,12 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
             userManager
         )
         calendarViewModel = CalendarViewModel(eventRepository, applicationContext)
+
+        // Check if we need to schedule notifications for future events
+        if (intent.getBooleanExtra("SCHEDULE_NOTIFICATIONS", false)) {
+            // Load events and schedule notifications
+            scheduleNotificationsForFutureEvents()
+        }
 
         // Inicializar TextToSpeech
         tts = TextToSpeech(this, this)
@@ -728,6 +735,61 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+            }
+        }
+    }
+
+    /**
+     * Schedule notifications for all future events
+     */
+    private fun scheduleNotificationsForFutureEvents() {
+        // Create a NotificationHelper
+        val notificationHelper = NotificationHelper(applicationContext)
+
+        // Load events
+        calendarViewModel.loadUserEvents()
+
+        // Wait for events to load and then schedule notifications
+        CoroutineScope(Dispatchers.Main).launch {
+            // Give time for events to load
+            kotlinx.coroutines.delay(1000)
+
+            // Get current date
+            val today = org.threeten.bp.LocalDate.now()
+
+            // Get notification settings from AppConfig
+            val notificationEnabled = AppConfig.getNotificationEnabled()
+            val notificationHours = AppConfig.getNotificationHours()
+            val notificationMinutes = AppConfig.getNotificationMinutes()
+
+            // Only proceed if notifications are enabled
+            if (notificationEnabled) {
+                // Create notification time
+                val notificationTime = org.threeten.bp.LocalTime.of(notificationHours, notificationMinutes)
+
+                // Filter events that are today or in the future
+                val futureEvents = calendarViewModel.events.filter { event ->
+                    event.date.isEqual(today) || event.date.isAfter(today)
+                }
+
+                // Schedule notifications for each future event
+                futureEvents.forEach { event ->
+                    // Create a copy of the event with the notification time
+                    val eventWithNotification = event.copy(notificationTime = notificationTime)
+
+                    // Schedule notification
+                    notificationHelper.scheduleNotification(eventWithNotification)
+
+                    Log.d("MainActivity", "Scheduled notification for event: ${event.title} on ${event.date} at ${event.time}")
+                }
+
+                // Show toast message
+                val message = if (futureEvents.isEmpty()) {
+                    "No hay eventos futuros para programar notificaciones"
+                } else {
+                    "Se han programado notificaciones para ${futureEvents.size} eventos futuros"
+                }
+                Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
