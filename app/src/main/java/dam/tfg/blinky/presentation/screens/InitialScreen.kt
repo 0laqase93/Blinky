@@ -116,11 +116,10 @@ fun InitialScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Ojo izquierdo con animación
+                // Left eye animation
                 AnimatedContent(
                     targetState = emotionState.value.leftEye,
                     transitionSpec = {
-                        // Definir la animación para la transición
                         (slideInVertically { height -> height } + fadeIn(animationSpec = tween(300)))
                             .togetherWith(slideOutVertically { height -> -height } + fadeOut(animationSpec = tween(300)))
                     },
